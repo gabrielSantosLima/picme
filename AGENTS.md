@@ -23,16 +23,18 @@ See `PLAN.md` for the full design. Implement in milestone order (M0 → M7).
 
 ## Commands
 
-> Update this section as scripts are added during M0.
-
 - Install: `npm install`
 - Dev: `npm run dev`
 - Build: `npm run build`
+- Build for Pages: `npm run build:pages` (sets `base` to `/picme/`)
 - Preview: `npm run preview`
-- Lint: `npm run lint`
-- Typecheck: `npm run typecheck`
+- Lint: `npm run lint` (oxlint)
+- Typecheck: `npm run typecheck` (tsc -b, strict mode)
 
 Always run lint and typecheck after making changes.
+
+Note: Tailwind CSS v4 is configured through the `@tailwindcss/vite` plugin and
+`src/index.css` (`@import "tailwindcss";`) — there is no `tailwind.config.js`.
 
 ## Conventions
 
@@ -70,5 +72,6 @@ fix: short message
 
 ## Deployment
 
-- `vite.config.ts` must set `base: '/picme/'` (matches the repo name).
+- GitHub Pages builds use `npm run build:pages`, which sets `base` to `/picme/`
+  (matches the repo name). Local/dev builds serve from `/`.
 - Use HashRouter (or a `404.html` redirect) to avoid 404s on refresh in Pages.
