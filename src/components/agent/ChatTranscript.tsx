@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
-import { useAgentStore } from '../../store/agentStore'
+import { useAgentStore, type AgentEntry } from '../../store/agentStore'
 
 function rowClass(role: string): string {
   if (role === 'user') return 'max-w-[85%] self-end rounded bg-sky-600 px-2 py-1 text-white'
@@ -41,6 +41,39 @@ function SkillTrace({
   )
 }
 
+function renderEntry(entry: AgentEntry) {
+  if (entry.kind === 'message') {
+    return (
+      <div key={entry.id} className={rowClass(entry.role)}>
+        <span className="whitespace-pre-wrap">{entry.content}</span>
+      </div>
+    )
+  }
+
+  if (entry.kind === 'divider') {
+    return (
+      <div
+        key={entry.id}
+        className="flex items-center gap-2 py-1 text-[11px] uppercase tracking-wide text-neutral-500"
+      >
+        <span className="h-px flex-1 bg-neutral-800" />
+        {entry.label}
+        <span className="h-px flex-1 bg-neutral-800" />
+      </div>
+    )
+  }
+
+  return (
+    <SkillTrace
+      key={entry.id}
+      name={entry.name}
+      status={entry.status}
+      args={entry.args}
+      result={entry.result}
+    />
+  )
+}
+
 export function ChatTranscript() {
   const entries = useAgentStore((state) => state.entries)
   const streamingText = useAgentStore((state) => state.streamingText)
@@ -60,21 +93,7 @@ export function ChatTranscript() {
         <p className="text-xs text-neutral-500">Describe what you want to draw.</p>
       )}
 
-      {entries.map((entry) =>
-        entry.kind === 'message' ? (
-          <div key={entry.id} className={rowClass(entry.role)}>
-            <span className="whitespace-pre-wrap">{entry.content}</span>
-          </div>
-        ) : (
-          <SkillTrace
-            key={entry.id}
-            name={entry.name}
-            status={entry.status}
-            args={entry.args}
-            result={entry.result}
-          />
-        ),
-      )}
+      {entries.map(renderEntry)}
 
       {streamingText.length > 0 && (
         <div className="max-w-[85%] self-start rounded bg-neutral-800 px-2 py-1 text-neutral-100">
