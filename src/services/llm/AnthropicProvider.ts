@@ -59,6 +59,7 @@ interface AnthropicStreamEvent {
   content_block?: { type?: string; id?: string; name?: string }
   delta?: { type?: string; text?: string; partial_json?: string; stop_reason?: string }
   usage?: { output_tokens?: number }
+  error?: { message?: string }
 }
 
 function safeParse(raw: string): unknown {
@@ -209,6 +210,9 @@ export class AnthropicProvider implements LLMProvider {
         continue
       }
 
+      if (event.type === 'error') {
+        throw new Error(event.error?.message ?? 'Provider returned an error')
+      }
       if (event.type === 'message_start') {
         inputTokens = event.message?.usage?.input_tokens ?? 0
       } else if (event.type === 'content_block_start') {

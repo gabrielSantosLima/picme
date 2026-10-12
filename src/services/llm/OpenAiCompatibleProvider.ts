@@ -52,6 +52,7 @@ interface StreamUsage {
 interface StreamChunk {
   choices?: StreamChoice[]
   usage?: StreamUsage
+  error?: { message?: string }
 }
 
 export class OpenAiCompatibleProvider implements LLMProvider {
@@ -115,6 +116,9 @@ export class OpenAiCompatibleProvider implements LLMProvider {
         chunk = JSON.parse(data) as StreamChunk
       } catch {
         continue
+      }
+      if (chunk.error) {
+        throw new Error(chunk.error.message ?? 'Provider returned an error')
       }
       const choice = chunk.choices?.[0]
       if (chunk.usage) {

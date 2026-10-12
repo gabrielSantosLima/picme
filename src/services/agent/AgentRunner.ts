@@ -143,6 +143,13 @@ export class AgentRunner {
       })
 
       if (toolCalls.length === 0) {
+        if (content.trim().length === 0) {
+          yield {
+            type: 'error',
+            error: 'The model returned an empty response. Try again or switch model.',
+          }
+          return
+        }
         yield { type: 'message', content }
         return
       }
