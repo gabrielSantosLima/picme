@@ -156,5 +156,10 @@ export function useAgent() {
     }
   }
 
-  return { run, submit, stop }
+  const newConversation = () => {
+    conversation = []
+    useAgentStore.getState().resetRun()
+  }
+
+  return { run, submit, stop, newConversation }
 }

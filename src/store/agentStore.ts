@@ -60,5 +60,13 @@ export const useAgentStore = create<AgentStoreState>((set) => ({
     })),
   removeEntry: (id) =>
     set((state) => ({ entries: state.entries.filter((entry) => entry.id !== id) })),
-  resetRun: () => set({ entries: [], streamingText: '', pendingInteraction: null, phase: 'idle' }),
+  resetRun: () =>
+    set({
+      entries: [],
+      streamingText: '',
+      tokens: 0,
+      preparing: null,
+      pendingInteraction: null,
+      phase: 'idle',
+    }),
 }))

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
+import { useAgent } from '../../hooks/useAgent'
 import { useAgentStore, type AgentEntry } from '../../store/agentStore'
 
 function rowClass(role: string): string {
@@ -79,6 +80,7 @@ export function ChatTranscript() {
   const streamingText = useAgentStore((state) => state.streamingText)
   const phase = useAgentStore((state) => state.phase)
   const preparing = useAgentStore((state) => state.preparing)
+  const { newConversation } = useAgent()
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -89,7 +91,7 @@ export function ChatTranscript() {
   const busy = phase === 'running' && streamingText.length === 0
 
   return (
-    <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3 text-sm">
+    <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 text-sm">
       {entries.length === 0 && streamingText.length === 0 && !busy && (
         <p className="text-xs text-neutral-500">Describe what you want to draw.</p>
       )}
@@ -107,6 +109,16 @@ export function ChatTranscript() {
           <span className="h-2 w-2 animate-pulse rounded-full bg-sky-400" />
           {preparing ? `Preparing ${preparing}…` : 'Thinking'}
         </div>
+      )}
+
+      {phase === 'done' && (
+        <button
+          type="button"
+          onClick={newConversation}
+          className="mx-auto mt-1 rounded border border-neutral-700 px-3 py-1 text-xs text-neutral-300 hover:bg-neutral-800 focus:outline-none"
+        >
+          New conversation
+        </button>
       )}
     </div>
   )
