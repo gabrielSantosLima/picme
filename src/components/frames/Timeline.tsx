@@ -3,7 +3,8 @@ import { useAnimationPlayback } from '../../hooks/useAnimationPlayback'
 import { useEditor } from '../../hooks/useEditor'
 import { useDocumentStore } from '../../store/documentStore'
 
-const iconButton = 'flex h-8 w-8 items-center justify-center rounded bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+const iconButton =
+  'flex h-8 w-8 items-center justify-center rounded bg-neutral-800 text-neutral-300 hover:bg-neutral-700 focus:outline-none'
 
 export function Timeline() {
   const project = useDocumentStore((state) => state.project)
@@ -48,8 +49,10 @@ export function Timeline() {
               type="button"
               onClick={() => editor.setActiveFrame(index)}
               className={[
-                'flex h-10 min-w-12 flex-col items-center justify-center rounded px-2 text-xs',
-                active ? 'bg-sky-600/40 text-white ring-1 ring-sky-400' : 'bg-neutral-800 text-neutral-300',
+                'flex h-10 min-w-12 flex-col items-center justify-center rounded-md border-2 px-2 text-xs transition-colors focus:outline-none',
+                active
+                  ? 'border-sky-400 bg-sky-600 text-white'
+                  : 'border-transparent bg-neutral-800 text-neutral-300 hover:bg-neutral-700',
               ].join(' ')}
             >
               <span className="font-semibold">{index + 1}</span>

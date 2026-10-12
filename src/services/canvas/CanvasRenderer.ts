@@ -51,9 +51,9 @@ export class CanvasRenderer {
   }
 
   private drawCheckerboard(ctx: CanvasRenderingContext2D, width: number, height: number, cell: number): void {
-    ctx.fillStyle = '#2f2f2f'
+    ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, width, height)
-    ctx.fillStyle = '#383838'
+    ctx.fillStyle = '#e6e6e6'
     for (let y = 0; y < height; y += cell) {
       for (let x = 0; x < width; x += cell) {
         if ((x / cell + y / cell) % 2 === 0) ctx.fillRect(x, y, cell, cell)
@@ -124,7 +124,7 @@ export class CanvasRenderer {
   }
 
   private drawGrid(ctx: CanvasRenderingContext2D, project: Project, scale: number): void {
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)'
     ctx.lineWidth = 1
     ctx.beginPath()
     for (let x = 1; x < project.width; x += 1) {
@@ -157,7 +157,7 @@ export class CanvasRenderer {
     }
     if (maxX < 0) return
     ctx.save()
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)'
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)'
     ctx.setLineDash([4, 4])
     ctx.lineWidth = 1
     ctx.strokeRect(
