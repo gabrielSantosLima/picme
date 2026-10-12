@@ -27,11 +27,14 @@ export interface ModelInfo {
   label: string
 }
 
+export type ReasoningEffort = 'default' | 'minimal' | 'low' | 'medium' | 'high'
+
 export interface ProviderSettings {
   providerId: string
   baseUrl: string
   model: string
   apiKey: string
+  reasoningEffort: ReasoningEffort
 }
 
 export interface EncryptedValue {
@@ -43,6 +46,7 @@ export interface StoredProviderSettings {
   providerId: string
   baseUrl: string
   model: string
+  reasoningEffort?: ReasoningEffort
   encryptedApiKey: EncryptedValue | null
 }
 

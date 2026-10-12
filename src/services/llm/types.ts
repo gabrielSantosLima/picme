@@ -1,4 +1,5 @@
 import type { JsonSchema } from '../../entities/agent'
+import type { ReasoningEffort } from '../../entities/provider'
 
 export type ChatRole = 'system' | 'user' | 'assistant' | 'tool'
 
@@ -31,6 +32,7 @@ export interface ChatRequest {
   tools?: ToolDefinition[]
   toolChoice?: ToolChoice
   temperature?: number
+  reasoningEffort?: Exclude<ReasoningEffort, 'default'>
 }
 
 export type ChatChunk =

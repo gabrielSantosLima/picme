@@ -21,7 +21,13 @@ function ProviderSettingsForm({ onClose }: { onClose: () => void }) {
   const [model, setModel] = useState(settings?.model ?? '')
   const [saving, setSaving] = useState(false)
 
-  const current = () => ({ providerId, baseUrl, model, apiKey })
+  const current = () => ({
+    providerId,
+    baseUrl,
+    model,
+    apiKey,
+    reasoningEffort: settings?.reasoningEffort ?? 'default',
+  })
 
   const handleProviderChange = (id: string) => {
     const preset = findPreset(id)

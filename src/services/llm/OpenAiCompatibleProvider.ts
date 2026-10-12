@@ -78,6 +78,7 @@ export class OpenAiCompatibleProvider implements LLMProvider {
         tools: request.tools,
         tool_choice: request.toolChoice,
         temperature: request.temperature,
+        reasoning_effort: request.reasoningEffort,
         stream: true,
       }),
       signal,

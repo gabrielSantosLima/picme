@@ -47,6 +47,7 @@ export class IndexedDbProviderSettingsRepository implements ProviderSettingsRepo
       baseUrl: stored.baseUrl,
       model: stored.model,
       apiKey,
+      reasoningEffort: stored.reasoningEffort ?? 'default',
     }
   }
 
@@ -58,6 +59,7 @@ export class IndexedDbProviderSettingsRepository implements ProviderSettingsRepo
       providerId: settings.providerId,
       baseUrl: settings.baseUrl,
       model: settings.model,
+      reasoningEffort: settings.reasoningEffort,
       encryptedApiKey,
     }
     await idbPut(db, STORE, SETTINGS_KEY, stored)

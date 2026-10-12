@@ -1,4 +1,5 @@
 import type { AgentEvent, AgentSkill, SkillContext } from '../../entities/agent'
+import type { ReasoningEffort } from '../../entities/provider'
 import type { LLMProvider } from '../llm/LLMProvider'
 import type { ChatMessage, ChatRequest, ToolCall } from '../llm/types'
 import { buildTools } from './buildTools'
@@ -9,6 +10,7 @@ export interface AgentRunnerOptions {
   skills?: AgentSkill[]
   maxSteps?: number
   temperature?: number
+  reasoningEffort?: Exclude<ReasoningEffort, 'default'>
 }
 
 interface PartialToolCall {
@@ -60,6 +62,7 @@ export class AgentRunner {
         tools,
         toolChoice: tools ? 'auto' : undefined,
         temperature: this.options.temperature,
+        reasoningEffort: this.options.reasoningEffort,
       }
 
       const textParts: string[] = []
