@@ -1,46 +1,56 @@
 import { create } from 'zustand'
 import type { AgentPhase, PendingInteraction } from '../entities/agent'
 
-export interface AgentMessage {
-  id: string
-  role: 'user' | 'assistant' | 'error'
-  content: string
-}
+export type AgentEntry =
+  | { id: string; kind: 'message'; role: 'user' | 'assistant' | 'error'; content: string }
+  | { id: string; kind: 'thinking'; status: 'running' | 'done'; detail: string }
+  | { id: string; kind: 'skill'; name: string; status: 'running' | 'done'; args: string; result: string }
+
+export type AgentEntryInput =
+  | { kind: 'message'; role: 'user' | 'assistant' | 'error'; content: string }
+  | { kind: 'thinking'; status: 'running' | 'done'; detail: string }
+  | { kind: 'skill'; name: string; status: 'running' | 'done'; args: string; result: string }
 
 export type RightTab = 'layers' | 'agent'
 
 interface AgentStoreState {
   rightTab: RightTab
   phase: AgentPhase
-  messages: AgentMessage[]
+  entries: AgentEntry[]
   streamingText: string
-  error: string | null
   pendingInteraction: PendingInteraction | null
   setRightTab: (tab: RightTab) => void
   setPhase: (phase: AgentPhase) => void
-  addMessage: (message: { role: AgentMessage['role']; content: string }) => void
   setStreaming: (text: string) => void
-  setError: (error: string | null) => void
   setPending: (pending: PendingInteraction | null) => void
+  addEntry: (entry: AgentEntryInput) => string
+  updateEntry: (id: string, patch: Record<string, unknown>) => void
+  removeEntry: (id: string) => void
   resetRun: () => void
 }
 
 export const useAgentStore = create<AgentStoreState>((set) => ({
   rightTab: 'layers',
   phase: 'idle',
-  messages: [],
+  entries: [],
   streamingText: '',
-  error: null,
   pendingInteraction: null,
   setRightTab: (rightTab) => set({ rightTab }),
   setPhase: (phase) => set({ phase }),
-  addMessage: (message) =>
-    set((state) => ({
-      messages: [...state.messages, { id: crypto.randomUUID(), ...message }],
-    })),
   setStreaming: (streamingText) => set({ streamingText }),
-  setError: (error) => set({ error }),
   setPending: (pendingInteraction) => set({ pendingInteraction }),
-  resetRun: () =>
-    set({ messages: [], streamingText: '', error: null, pendingInteraction: null, phase: 'idle' }),
+  addEntry: (entry) => {
+    const id = crypto.randomUUID()
+    set((state) => ({ entries: [...state.entries, { ...entry, id } as AgentEntry] }))
+    return id
+  },
+  updateEntry: (id, patch) =>
+    set((state) => ({
+      entries: state.entries.map((entry) =>
+        entry.id === id ? ({ ...entry, ...patch } as AgentEntry) : entry,
+      ),
+    })),
+  removeEntry: (id) =>
+    set((state) => ({ entries: state.entries.filter((entry) => entry.id !== id) })),
+  resetRun: () => set({ entries: [], streamingText: '', pendingInteraction: null, phase: 'idle' }),
 }))
