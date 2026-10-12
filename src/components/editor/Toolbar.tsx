@@ -47,13 +47,14 @@ const SHAPE_TOOLS: ToolId[] = ['line', 'rectangle', 'ellipse']
 
 function buttonClass(active: boolean): string {
   return [
-    'flex h-9 w-9 items-center justify-center rounded text-lg transition-colors',
+    'flex h-9 w-9 items-center justify-center rounded text-lg transition-colors focus:outline-none',
     active ? 'bg-sky-500 text-white' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700',
   ].join(' ')
 }
 
 export function Toolbar() {
-  const { tool, setTool, showGrid, toggleGrid, shapeFilled, toggleShapeFilled } = useEditorContext()
+  const { tool, setTool, showGrid, toggleGrid, shapeFilled, toggleShapeFilled, zoom, setZoom } =
+    useEditorContext()
   const editor = useEditor()
 
   return (
@@ -112,12 +113,31 @@ export function Toolbar() {
       </button>
 
       <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-1 rounded bg-neutral-800 px-1">
+          <button
+            type="button"
+            title="Zoom out"
+            className="flex h-7 w-7 items-center justify-center text-neutral-300 hover:text-white focus:outline-none"
+            onClick={() => setZoom(zoom - 1)}
+          >
+            −
+          </button>
+          <span className="w-12 text-center text-xs text-neutral-300">{zoom}×</span>
+          <button
+            type="button"
+            title="Zoom in"
+            className="flex h-7 w-7 items-center justify-center text-neutral-300 hover:text-white focus:outline-none"
+            onClick={() => setZoom(zoom + 1)}
+          >
+            +
+          </button>
+        </div>
         <button
           type="button"
           title="Toggle grid"
           onClick={toggleGrid}
           className={[
-            'rounded px-3 py-1 text-xs font-semibold transition-colors',
+            'rounded px-3 py-1 text-xs font-semibold transition-colors focus:outline-none',
             showGrid ? 'bg-sky-500 text-white' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700',
           ].join(' ')}
         >

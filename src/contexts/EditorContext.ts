@@ -1,6 +1,9 @@
 import { createContext, useContext } from 'react'
 import type { RGBA } from '../entities/color'
 
+export const ZOOM_MIN = 1
+export const ZOOM_MAX = 64
+
 export type ToolId =
   | 'pencil'
   | 'eraser'

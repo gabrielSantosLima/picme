@@ -3,8 +3,11 @@ import { PixelCanvas } from '../components/editor/PixelCanvas'
 import { Toolbar } from '../components/editor/Toolbar'
 import { Timeline } from '../components/frames/Timeline'
 import { LayersPanel } from '../components/layers/LayersPanel'
+import { useEditorShortcuts } from '../hooks/useEditorShortcuts'
 
 export function EditorPage() {
+  useEditorShortcuts()
+
   return (
     <div className="flex h-screen flex-col bg-neutral-950 text-neutral-100">
       <header className="flex items-center gap-3 border-b border-neutral-800 px-4 py-2">
@@ -16,7 +19,7 @@ export function EditorPage() {
 
       <div className="flex min-h-0 flex-1">
         <ColorPalette />
-        <div className="flex flex-1 items-center justify-center overflow-auto p-6">
+        <div className="flex flex-1 items-center justify-center overflow-auto p-4">
           <PixelCanvas />
         </div>
         <LayersPanel />

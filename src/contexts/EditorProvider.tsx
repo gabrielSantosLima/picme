@@ -1,12 +1,18 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { fromHex, type RGBA } from '../entities/color'
-import { EditorContext, type EditorContextValue, type ToolId } from './EditorContext'
+import {
+  EditorContext,
+  type EditorContextValue,
+  type ToolId,
+  ZOOM_MAX,
+  ZOOM_MIN,
+} from './EditorContext'
 
 export function EditorProvider({ children }: { children: ReactNode }) {
   const [tool, setTool] = useState<ToolId>('pencil')
   const [primaryColor, setPrimaryColor] = useState<RGBA>(() => fromHex('#000000'))
   const [secondaryColor, setSecondaryColor] = useState<RGBA>(() => fromHex('#ffffff'))
-  const [zoom, setZoom] = useState(16)
+  const [zoom, setZoomState] = useState(20)
   const [showGrid, setShowGrid] = useState(true)
   const [shapeFilled, setShapeFilled] = useState(false)
 
@@ -23,7 +29,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         setSecondaryColor(primaryColor)
       },
       zoom,
-      setZoom,
+      setZoom: (value: number) =>
+        setZoomState(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(value)))),
       showGrid,
       toggleGrid: () => setShowGrid((current) => !current),
       shapeFilled,

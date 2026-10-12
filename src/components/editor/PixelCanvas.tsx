@@ -1,4 +1,4 @@
-import { useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import { useEditorContext } from '../../contexts/EditorContext'
 import type { Point } from '../../entities/geometry'
 import { useCanvasRenderer } from '../../hooks/useCanvasRenderer'
@@ -9,7 +9,7 @@ import { useSelectionStore } from '../../store/selectionStore'
 export function PixelCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const project = useDocumentStore((state) => state.project)
-  const { zoom, showGrid } = useEditorContext()
+  const { zoom, setZoom, showGrid } = useEditorContext()
   const mask = useSelectionStore((state) => state.mask)
   const maskWidth = useSelectionStore((state) => state.width)
   const maskHeight = useSelectionStore((state) => state.height)
@@ -37,6 +37,18 @@ export function PixelCanvas() {
 
   useCanvasRenderer(canvasRef, project, zoom, showGrid, selectionView, floatingView, preview)
 
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey) return
+      event.preventDefault()
+      setZoom(zoom + (event.deltaY < 0 ? 1 : -1))
+    }
+    canvas.addEventListener('wheel', onWheel, { passive: false })
+    return () => canvas.removeEventListener('wheel', onWheel)
+  }, [zoom, setZoom])
+
   const toPixel = (event: ReactPointerEvent<HTMLCanvasElement>): Point => {
     const canvas = canvasRef.current
     if (!canvas) return { x: 0, y: 0 }
@@ -52,7 +64,7 @@ export function PixelCanvas() {
   return (
     <canvas
       ref={canvasRef}
-      className="touch-none rounded border border-neutral-700 bg-neutral-800 shadow-lg"
+      className="touch-none rounded border border-neutral-300 bg-white shadow-lg focus:outline-none"
       style={{
         width: project.width * zoom,
         height: project.height * zoom,
