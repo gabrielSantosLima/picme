@@ -24,6 +24,7 @@ import {
 } from 'react-icons/lu'
 import { useEditorContext, type ToolId } from '../../contexts/EditorContext'
 import { useEditor } from '../../hooks/useEditor'
+import { AgentButton } from '../agent/AgentButton'
 import { ExportButton } from '../export/ExportButton'
 
 interface ToolButton {
@@ -115,6 +116,7 @@ export function Toolbar() {
       </button>
 
       <div className="ml-auto flex items-center gap-2">
+        <AgentButton />
         <button
           type="button"
           title="Zoom out"
