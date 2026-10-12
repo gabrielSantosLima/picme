@@ -72,7 +72,7 @@ Editing:
 Guidelines:
 - Use a limited palette and clear, centered silhouettes with a 1px margin.
 - Provide exactly ${project.height} rows of exactly ${project.width} characters.
-- Reply to the user in their own language.`
+- Always respond in English, regardless of the language the user writes in.`
 }
 
 export function buildAgentConfig(deps: AgentConfigDeps): AgentConfig {
