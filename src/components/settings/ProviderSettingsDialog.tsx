@@ -19,10 +19,15 @@ function ProviderSettingsForm({ onClose }: { onClose: () => void }) {
   const [baseUrl, setBaseUrl] = useState(settings?.baseUrl ?? PROVIDER_PRESETS[0].baseUrl)
   const [apiKey, setApiKey] = useState(settings?.apiKey ?? '')
   const [model, setModel] = useState(settings?.model ?? '')
+  const [modelQuery, setModelQuery] = useState('')
   const [sendCanvasImage, setSendCanvasImage] = useState(settings?.sendCanvasImage ?? true)
   const [saving, setSaving] = useState(false)
 
   const preset = findPreset(providerId)
+
+  const filteredModels = models
+    .filter((item) => item.id.toLowerCase().includes(modelQuery.trim().toLowerCase()))
+    .slice(0, 200)
 
   const current = () => ({
     providerId,
@@ -137,7 +142,10 @@ function ProviderSettingsForm({ onClose }: { onClose: () => void }) {
             />
             <button
               type="button"
-              onClick={() => listModels(current())}
+              onClick={() => {
+                setModelQuery('')
+                listModels(current())
+              }}
               disabled={modelsLoading}
               className="flex shrink-0 items-center gap-2 rounded bg-neutral-800 px-3 text-sm text-neutral-200 hover:bg-neutral-700 disabled:opacity-50 focus:outline-none"
             >
@@ -148,22 +156,33 @@ function ProviderSettingsForm({ onClose }: { onClose: () => void }) {
         </label>
 
         {models.length > 0 && (
-          <div className="flex max-h-32 flex-wrap gap-1 overflow-y-auto">
-            {models.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setModel(item.id)}
-                className={[
-                  'rounded border px-2 py-0.5 text-[11px] focus:outline-none',
-                  model === item.id
-                    ? 'border-sky-400 bg-sky-500/20 text-white'
-                    : 'border-neutral-700 bg-neutral-800 text-neutral-300 hover:border-neutral-500',
-                ].join(' ')}
-              >
-                {item.id}
-              </button>
-            ))}
+          <div className="flex flex-col gap-1">
+            <input
+              type="text"
+              value={modelQuery}
+              onChange={(event) => setModelQuery(event.target.value)}
+              placeholder={`Search ${models.length} models…`}
+              className={inputClass}
+            />
+            <div className="flex max-h-40 flex-col overflow-y-auto rounded border border-neutral-800">
+              {filteredModels.length === 0 && (
+                <span className="px-2 py-1 text-[11px] text-neutral-500">No matching model</span>
+              )}
+              {filteredModels.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setModel(item.id)}
+                  className={[
+                    'flex items-center justify-between gap-2 px-2 py-1 text-left text-[11px] transition-colors focus:outline-none',
+                    model === item.id ? 'bg-sky-500/20 text-white' : 'text-neutral-300 hover:bg-neutral-800',
+                  ].join(' ')}
+                >
+                  <span className="truncate">{item.id}</span>
+                  {model === item.id && <span className="shrink-0 text-sky-400">✓</span>}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
