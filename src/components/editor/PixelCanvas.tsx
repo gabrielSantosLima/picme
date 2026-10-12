@@ -70,12 +70,13 @@ export function PixelCanvas() {
         height: project.height * zoom,
         imageRendering: 'pixelated',
       }}
+      onContextMenu={(event) => event.preventDefault()}
       onPointerDown={(event) => {
         event.currentTarget.setPointerCapture(event.pointerId)
-        pointerDown(toPixel(event))
+        pointerDown(toPixel(event), event.button === 2)
       }}
       onPointerMove={(event) => {
-        if (event.buttons !== 1) return
+        if (event.buttons === 0) return
         pointerMove(toPixel(event))
       }}
       onPointerUp={() => pointerUp()}

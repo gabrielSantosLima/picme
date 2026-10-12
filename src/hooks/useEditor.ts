@@ -63,8 +63,15 @@ export function useEditor() {
     return overlay
   }
 
-  const pointerDown = (point: Point) => {
+  const pointerDown = (point: Point, erase = false) => {
     lastPointRef.current = point
+
+    if (erase) {
+      strokeRef.current = new PaintStroke(doc(), TRANSPARENT)
+      strokeRef.current.begin(point.x, point.y)
+      return
+    }
+
     const project = doc().getProject()
 
     if (tool === 'pencil' || tool === 'eraser') {
