@@ -1,5 +1,6 @@
 import type { Project } from '../../entities/Project'
-import { alpha, blue, green, isTransparent, red } from '../../entities/color'
+import { isTransparent } from '../../entities/color'
+import { compositeLayers, pixelsToImageData } from './composite'
 
 export interface SelectionView {
   mask: Uint8Array
@@ -63,15 +64,7 @@ export class CanvasRenderer {
 
   private composite(project: Project, options: RenderOptions): ImageData {
     const { width, height } = project
-    const pixels = new Uint32Array(width * height)
-    const frame = project.activeFrame
-    for (const layer of frame.layers) {
-      if (!layer.visible) continue
-      const data = layer.grid.data
-      for (let i = 0; i < pixels.length; i += 1) {
-        if (!isTransparent(data[i])) pixels[i] = data[i]
-      }
-    }
+    const pixels = compositeLayers(project.activeFrame, width, height)
     if (options.floating) {
       const { data, width: fw, height: fh, x: ox, y: oy } = options.floating
       for (let y = 0; y < fh; y += 1) {
@@ -90,21 +83,7 @@ export class CanvasRenderer {
         if (!isTransparent(options.preview[i])) pixels[i] = options.preview[i]
       }
     }
-    return this.toImageData(pixels, width, height)
-  }
-
-  private toImageData(pixels: Uint32Array, width: number, height: number): ImageData {
-    const image = new ImageData(width, height)
-    const out = image.data
-    for (let i = 0; i < pixels.length; i += 1) {
-      const color = pixels[i]
-      if (color === 0) continue
-      out[i * 4] = red(color)
-      out[i * 4 + 1] = green(color)
-      out[i * 4 + 2] = blue(color)
-      out[i * 4 + 3] = alpha(color)
-    }
-    return image
+    return pixelsToImageData(pixels, width, height)
   }
 
   private blit(
