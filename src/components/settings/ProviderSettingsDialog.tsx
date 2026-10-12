@@ -34,7 +34,10 @@ function ProviderSettingsForm({ onClose }: { onClose: () => void }) {
   const handleProviderChange = (id: string) => {
     const preset = findPreset(id)
     setProviderId(id)
-    if (preset && !preset.custom) setBaseUrl(preset.baseUrl)
+    if (preset && !preset.custom) {
+      setBaseUrl(preset.baseUrl)
+      if (preset.model) setModel(preset.model)
+    }
   }
 
   const handleSave = async () => {
@@ -128,7 +131,6 @@ function ProviderSettingsForm({ onClose }: { onClose: () => void }) {
               value={model}
               onChange={(event) => setModel(event.target.value)}
               placeholder="model-id"
-              list="provider-models"
               className={inputClass}
             />
             <button
@@ -143,11 +145,25 @@ function ProviderSettingsForm({ onClose }: { onClose: () => void }) {
           </div>
         </label>
 
-        <datalist id="provider-models">
-          {models.map((item) => (
-            <option key={item.id} value={item.id} />
-          ))}
-        </datalist>
+        {models.length > 0 && (
+          <div className="flex max-h-32 flex-wrap gap-1 overflow-y-auto">
+            {models.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setModel(item.id)}
+                className={[
+                  'rounded border px-2 py-0.5 text-[11px] focus:outline-none',
+                  model === item.id
+                    ? 'border-sky-400 bg-sky-500/20 text-white'
+                    : 'border-neutral-700 bg-neutral-800 text-neutral-300 hover:border-neutral-500',
+                ].join(' ')}
+              >
+                {item.id}
+              </button>
+            ))}
+          </div>
+        )}
 
         {error && <p className="rounded bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p>}
 
