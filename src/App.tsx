@@ -1,5 +1,12 @@
+import { EditorProvider } from './contexts/EditorProvider'
+import { EditorPage } from './pages/EditorPage'
+
 function App() {
-  return <main className="p-4">PicMe</main>
+  return (
+    <EditorProvider>
+      <EditorPage />
+    </EditorProvider>
+  )
 }
 
 export default App
