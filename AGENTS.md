@@ -51,8 +51,10 @@ Note: Tailwind CSS v4 is configured through the `@tailwindcss/vite` plugin and
   `PixelOp`s so undo/redo stays consistent.
 - Providers implement the single `LLMProvider` interface; differ only by base URL,
   headers, and model listing.
-- API keys are stored only in the browser (`localStorage`). Never commit secrets,
-  never log keys, and show a client-side security notice in the UI.
+- API keys are stored only in the browser (`IndexedDB`), encrypted with the Web
+  Crypto API (AES-GCM). Never commit secrets, never log keys, and show a
+  client-side security notice in the UI. Non-sensitive provider settings may be
+  stored in plain text.
 
 ## Architecture Rules
 
