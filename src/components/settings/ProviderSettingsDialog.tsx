@@ -21,6 +21,8 @@ function ProviderSettingsForm({ onClose }: { onClose: () => void }) {
   const [model, setModel] = useState(settings?.model ?? '')
   const [saving, setSaving] = useState(false)
 
+  const preset = findPreset(providerId)
+
   const current = () => ({
     providerId,
     baseUrl,
@@ -103,6 +105,19 @@ function ProviderSettingsForm({ onClose }: { onClose: () => void }) {
             autoComplete="off"
             className={inputClass}
           />
+          {preset?.helpUrl && (
+            <span className="text-[11px] font-normal text-neutral-500">
+              {preset.helpTip}{' '}
+              <a
+                href={preset.helpUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sky-400 hover:underline"
+              >
+                Generate API key →
+              </a>
+            </span>
+          )}
         </label>
 
         <label className={labelClass}>

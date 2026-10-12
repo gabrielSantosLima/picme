@@ -3,6 +3,8 @@ export interface ProviderPreset {
   name: string
   baseUrl: string
   custom: boolean
+  helpUrl?: string
+  helpTip?: string
 }
 
 export const PROVIDER_PRESETS: ProviderPreset[] = [
@@ -11,13 +13,24 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     name: 'DeepInfra',
     baseUrl: 'https://api.deepinfra.com/v1/openai',
     custom: false,
+    helpUrl: 'https://deepinfra.com/dash/api_keys',
+    helpTip: 'Open DeepInfra → Dashboard → API keys.',
   },
-  { id: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', custom: false },
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    baseUrl: 'https://api.openai.com/v1',
+    custom: false,
+    helpUrl: 'https://platform.openai.com/api-keys',
+    helpTip: 'Open platform.openai.com → API keys → Create new secret key.',
+  },
   {
     id: 'gemini',
     name: 'Gemini',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
     custom: false,
+    helpUrl: 'https://aistudio.google.com/app/apikey',
+    helpTip: 'Open Google AI Studio → Get API key.',
   },
   { id: 'custom', name: 'Custom', baseUrl: '', custom: true },
 ]
