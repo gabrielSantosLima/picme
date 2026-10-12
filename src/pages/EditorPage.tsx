@@ -2,7 +2,7 @@ import { ColorPalette } from '../components/editor/ColorPalette'
 import { PixelCanvas } from '../components/editor/PixelCanvas'
 import { Toolbar } from '../components/editor/Toolbar'
 import { Timeline } from '../components/frames/Timeline'
-import { LayersPanel } from '../components/layers/LayersPanel'
+import { RightDock } from '../components/layout/RightDock'
 import { useEditorShortcuts } from '../hooks/useEditorShortcuts'
 
 export function EditorPage() {
@@ -22,7 +22,7 @@ export function EditorPage() {
         <div className="flex flex-1 items-center justify-center overflow-auto p-4">
           <PixelCanvas />
         </div>
-        <LayersPanel />
+        <RightDock />
       </div>
 
       <Timeline />

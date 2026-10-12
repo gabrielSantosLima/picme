@@ -9,7 +9,7 @@ export function LayersPanel() {
   const order = frame.layers.map((_, index) => index).reverse()
 
   return (
-    <div className="flex w-56 shrink-0 flex-col gap-2 border-l border-neutral-800 bg-neutral-900 p-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
       <div className="flex items-center justify-between text-sm font-medium text-neutral-200">
         <span className="flex items-center gap-2">
           <LuLayers /> Layers
