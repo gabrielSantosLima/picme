@@ -1,14 +1,16 @@
 import { create } from 'zustand'
-import type { AgentPhase, PendingInteraction } from '../entities/agent'
+import type { AgentPhase, ArtVariant, PendingInteraction } from '../entities/agent'
 
 export type AgentEntry =
   | { id: string; kind: 'message'; role: 'user' | 'assistant' | 'error'; content: string }
   | { id: string; kind: 'divider'; label: string }
+  | { id: string; kind: 'variants'; variants: ArtVariant[]; selected?: number }
   | { id: string; kind: 'skill'; name: string; status: 'running' | 'done'; args: string; result: string }
 
 export type AgentEntryInput =
   | { kind: 'message'; role: 'user' | 'assistant' | 'error'; content: string }
   | { kind: 'divider'; label: string }
+  | { kind: 'variants'; variants: ArtVariant[]; selected?: number }
   | { kind: 'skill'; name: string; status: 'running' | 'done'; args: string; result: string }
 
 export type RightTab = 'layers' | 'agent'

@@ -5,6 +5,7 @@ import { AgentInput } from './AgentInput'
 import { AgentSettingsBar } from './AgentSettingsBar'
 import { ChatTranscript } from './ChatTranscript'
 import { QuestionForm } from './QuestionForm'
+import { VariantPicker } from './VariantPicker'
 import { WordCloudPicker } from './WordCloudPicker'
 
 export function AgentPanel() {
@@ -26,15 +27,19 @@ export function AgentPanel() {
 
       {pendingInteraction && (
         <div className="border-t border-neutral-800 p-3">
-          {pendingInteraction.kind === 'questions' ? (
+          {pendingInteraction.kind === 'questions' && (
             <QuestionForm questions={pendingInteraction.questions} onSubmit={submit} />
-          ) : (
+          )}
+          {pendingInteraction.kind === 'word-cloud' && (
             <WordCloudPicker
               question={pendingInteraction.question}
               clouds={pendingInteraction.clouds}
               multiple={pendingInteraction.multiple}
               onSubmit={submit}
             />
+          )}
+          {pendingInteraction.kind === 'variants' && (
+            <VariantPicker variants={pendingInteraction.variants} onSubmit={submit} />
           )}
         </div>
       )}

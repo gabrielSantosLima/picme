@@ -37,6 +37,31 @@ function stringify(value: unknown): string {
   }
 }
 
+function compactArguments(args: string): string {
+  if (args.length <= 600) return args
+  try {
+    const parsed = JSON.parse(args) as Record<string, unknown>
+    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.pixels)) {
+      return JSON.stringify({ ...parsed, pixels: `[${parsed.pixels.length} rows omitted to save tokens]` })
+    }
+    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.variants)) {
+      return JSON.stringify({
+        ...parsed,
+        variants: parsed.variants.map((variant) => {
+          const item = variant as Record<string, unknown>
+          if (item && typeof item === 'object' && Array.isArray(item.pixels)) {
+            return { ...item, pixels: `[${item.pixels.length} rows omitted]` }
+          }
+          return item
+        }),
+      })
+    }
+    return JSON.stringify({ note: `arguments omitted (${args.length} chars)` })
+  } catch {
+    return JSON.stringify({ note: 'arguments omitted' })
+  }
+}
+
 export class AgentRunner {
   constructor(private readonly options: AgentRunnerOptions) {}
 
@@ -111,7 +136,10 @@ export class AgentRunner {
       messages.push({
         role: 'assistant',
         content: content.length > 0 ? content : null,
-        toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+        toolCalls:
+          toolCalls.length > 0
+            ? toolCalls.map((call) => ({ ...call, arguments: compactArguments(call.arguments) }))
+            : undefined,
       })
 
       if (toolCalls.length === 0) {

@@ -50,6 +50,14 @@ export type PendingInteraction =
       clouds: WordCloudSpec[]
       multiple: boolean
     }
+  | { id: string; kind: 'variants'; variants: ArtVariant[] }
+
+export interface ArtVariant {
+  id: string
+  name?: string
+  palette: string[]
+  pixels: string[]
+}
 
 export interface QuestionAnswer {
   question: string

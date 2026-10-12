@@ -1,5 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
+import type { ArtVariant } from '../../entities/agent'
+import { variantToDataUrl } from '../../services/canvas/variantToDataUrl'
 import { useAgent } from '../../hooks/useAgent'
 import { useAgentStore, type AgentEntry } from '../../store/agentStore'
 
@@ -42,6 +44,33 @@ function SkillTrace({
   )
 }
 
+function VariantsEntry({ variants, selected }: { variants: ArtVariant[]; selected?: number }) {
+  const images = useMemo(() => variants.map((variant) => variantToDataUrl(variant)), [variants])
+  return (
+    <div className="flex gap-2">
+      {variants.map((variant, index) => (
+        <div
+          key={variant.id}
+          className={[
+            'flex-1 rounded border p-1',
+            index === selected ? 'border-sky-400' : 'border-neutral-800',
+          ].join(' ')}
+        >
+          <img
+            src={images[index]}
+            alt={variant.name ?? `Variant ${index + 1}`}
+            className="w-full rounded"
+            style={{ imageRendering: 'pixelated' }}
+          />
+          <span className="mt-1 block text-center text-[10px] text-neutral-500">
+            {variant.name ?? index + 1}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function renderEntry(entry: AgentEntry) {
   if (entry.kind === 'message') {
     return (
@@ -62,6 +91,10 @@ function renderEntry(entry: AgentEntry) {
         <span className="h-px flex-1 bg-neutral-800" />
       </div>
     )
+  }
+
+  if (entry.kind === 'variants') {
+    return <VariantsEntry key={entry.id} variants={entry.variants} selected={entry.selected} />
   }
 
   return (
