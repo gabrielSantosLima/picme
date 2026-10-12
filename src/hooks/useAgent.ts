@@ -9,6 +9,7 @@ import { buildAgentConfig } from '../useCases/agent/agentConfig'
 
 let broker: InteractionBroker | null = null
 let currentAbort: AbortController | null = null
+let conversation: ChatMessage[] = []
 
 function getBroker(): InteractionBroker {
   if (!broker) {
@@ -49,9 +50,10 @@ export function useAgent() {
   const run = async (prompt: string) => {
     if (!configured || !settings) return
     const store = () => useAgentStore.getState()
-    store().resetRun()
+    store().setStreaming('')
     store().setPhase('running')
     store().addEntry({ kind: 'message', role: 'user', content: prompt })
+    conversation.push({ role: 'user', content: prompt })
 
     const config = buildAgentConfig({
       broker: getBroker(),
@@ -62,27 +64,25 @@ export function useAgent() {
       systemPrompt: config.systemPrompt,
       skills: config.skills,
       maxSteps: config.maxSteps,
+      reasoningEffort:
+        settings.reasoningEffort === 'default' ? undefined : settings.reasoningEffort,
     })
 
     const controller = new AbortController()
     currentAbort = controller
-    const history: ChatMessage[] = [{ role: 'user', content: prompt }]
+    const history: ChatMessage[] = conversation.map((message) => ({ ...message }))
     const pendingSkills: Array<{ id: string; name: string }> = []
     let buffer = ''
-    let thinkingId: string | null = null
 
     try {
       for await (const event of runner.run(history, { emit: () => undefined }, controller.signal)) {
         if (event.type === 'text') {
           buffer += event.text
           store().setStreaming(buffer)
-          if (!thinkingId) {
-            thinkingId = store().addEntry({ kind: 'thinking', status: 'running', detail: '' })
-          }
         } else if (event.type === 'tool_call') {
-          if (thinkingId) {
-            store().updateEntry(thinkingId, { status: 'done', detail: buffer.trim() })
-            thinkingId = null
+          const reasoning = buffer.trim()
+          if (reasoning) {
+            store().addEntry({ kind: 'message', role: 'assistant', content: reasoning })
           }
           buffer = ''
           store().setStreaming('')
@@ -99,20 +99,15 @@ export function useAgent() {
           const skill = index >= 0 ? pendingSkills.splice(index, 1)[0] : undefined
           if (skill) store().updateEntry(skill.id, { status: 'done', result: stringify(event.result) })
         } else if (event.type === 'message') {
-          if (thinkingId) {
-            store().removeEntry(thinkingId)
-            thinkingId = null
-          }
           const content = buffer.trim() || event.content.trim()
-          if (content) store().addEntry({ kind: 'message', role: 'assistant', content })
+          if (content) {
+            store().addEntry({ kind: 'message', role: 'assistant', content })
+            conversation.push({ role: 'assistant', content })
+          }
           buffer = ''
           store().setStreaming('')
           store().setPhase('done')
         } else if (event.type === 'error') {
-          if (thinkingId) {
-            store().removeEntry(thinkingId)
-            thinkingId = null
-          }
           store().addEntry({ kind: 'message', role: 'error', content: event.error })
           buffer = ''
           store().setStreaming('')

@@ -3,12 +3,10 @@ import type { AgentPhase, PendingInteraction } from '../entities/agent'
 
 export type AgentEntry =
   | { id: string; kind: 'message'; role: 'user' | 'assistant' | 'error'; content: string }
-  | { id: string; kind: 'thinking'; status: 'running' | 'done'; detail: string }
   | { id: string; kind: 'skill'; name: string; status: 'running' | 'done'; args: string; result: string }
 
 export type AgentEntryInput =
   | { kind: 'message'; role: 'user' | 'assistant' | 'error'; content: string }
-  | { kind: 'thinking'; status: 'running' | 'done'; detail: string }
   | { kind: 'skill'; name: string; status: 'running' | 'done'; args: string; result: string }
 
 export type RightTab = 'layers' | 'agent'
