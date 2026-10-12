@@ -96,31 +96,39 @@ picme/
 ├── src/
 │   ├── main.tsx
 │   ├── App.tsx
-│   ├── entities/                     # domain classes (no deps)
+│   ├── entities/                     # domain classes/types (no deps)
 │   │   ├── PixelGrid.ts
 │   │   ├── Frame.ts
 │   │   ├── Project.ts
-│   │   ├── Palette.ts
-│   │   └── ChatMessage.ts
+│   │   ├── color.ts / geometry.ts / palette.ts
+│   │   ├── provider.ts               # provider presets + settings
+│   │   └── agent.ts                  # skills, events, modes, interactions
 │   ├── services/                     # external + browser APIs
-│   │   ├── storage/                  # localStorage (keys, saved projects)
-│   │   ├── llm/                      # openai, deepinfra, gemini, custom
-│   │   └── export/                   # gif.ts, spritesheet.ts
+│   │   ├── storage/                  # IndexedDB + Web Crypto (settings)
+│   │   ├── llm/                      # OpenAI-compatible provider, SSE, types
+│   │   ├── agent/                    # AgentRunner, InteractionBroker
+│   │   ├── canvas/                   # CanvasRenderer, composite, export helpers
+│   │   ├── export/                   # GIF / sprite sheet / frame images
+│   │   └── browser/                  # downloads
 │   ├── useCases/                     # one class per use case, `execute()`
-│   │   ├── canvas/                   # DrawPixels, ErasePixels, FillArea, ClearCanvas
-│   │   ├── frames/                   # AddFrame, DeleteFrame, DuplicateFrame, ReorderFrames
-│   │   ├── export/                   # ExportGif, ExportSpriteSheet
-│   │   ├── settings/                 # ListModels, SaveProviderConfig
-│   │   └── agent/                    # RunDiscovery, GeneratePixelArt, ApplyAgentOps
+│   │   ├── canvas/                   # PaintStroke, FillArea, DrawShape, PickColor
+│   │   ├── selection/                # select/delete/copy/paste/move
+│   │   ├── frames/ layers/           # frame + layer use cases
+│   │   ├── export/                   # ExportGif, ExportSpriteSheet, ExportFrameImages
+│   │   ├── settings/                 # Load/Save settings, ListModels
+│   │   └── agent/                    # modes, discovery/paint skills (ask, cloud, draw)
 │   ├── hooks/                        # reusable hooks (use use cases)
 │   ├── contexts/                     # React Context providers
-│   ├── store/                        # Zustand stores
+│   ├── store/                        # Zustand stores (document, selection, agent)
 │   ├── pages/                        # EditorPage
 │   └── components/                   # reusable components
 │       ├── editor/                   # PixelCanvas, Toolbar, ColorPalette
 │       ├── frames/                   # Timeline
-│       ├── agent/                    # AgentBar, ChatPanel, WordCloud
-│       └── settings/                 # ProviderSettings
+│       ├── layers/                   # LayersPanel
+│       ├── agent/                    # AgentButton, AgentPanel, QuestionForm, WordCloudPicker
+│       ├── layout/                   # RightDock (Layers | Agent)
+│       ├── export/                   # ExportButton
+│       └── settings/                 # ProviderSettingsDialog
 └── PLAN.md
 ```
 
@@ -165,32 +173,31 @@ interface ModelInfo { id: string; label: string; }
 - Global FPS playback with play/pause.
 - Onion skin (previous frame rendered translucent).
 
-### 7.3 Agent bar (top) — smart input
-- Text input plus quick-action buttons; keyboard shortcut to focus.
-- Two-phase flow:
-  1. **Discovery** — agent asks targeted questions (style, subject, palette,
-     dimensions, number of frames) and returns a **clickable word cloud**;
-     selected tags become context for generation.
-  2. **Generation** — agent emits structured operations that paint the canvas
-     progressively.
+### 7.3 Agent panel (right dock)
+- Docked on the right as a panel with tabs `Layers | Agent` (same pattern as the
+  layers/color panels).
+- The toolbar **agent button** opens `ProviderSettingsDialog` when no provider is
+  configured; otherwise it toggles the **Agent** tab.
+- Panel contents: conversation transcript, interactive area (questions / word
+  cloud) and a prompt input with **Run / Stop**.
 
-### 7.4 Agent paints in real time
-Use tool/function calling with a strict schema instead of free-form text.
+### 7.4 Agent: Deep Draw with editing
+A single agent that both **plans** (questions / word clouds) and **creates or
+edits** pixel art, including **editing more than one frame by `frameId`**.
 
-```ts
-type PixelOp =
-  | { type: 'setPixels'; pixels: { x: number; y: number; color: RGBA }[] }
-  | { type: 'line'; from: Point; to: Point; color: RGBA }
-  | { type: 'rect'; from: Point; to: Point; color: RGBA; filled: boolean }
-  | { type: 'fill'; start: Point; color: RGBA }
-  | { type: 'clear'; color?: RGBA }
-  | { type: 'addFrame'; afterId?: string }
-  | { type: 'deleteFrame'; id: string };
-```
+- System prompt covers creation and editing.
+- Context includes project metadata plus the **content (char-grid + palette) of
+  every frame**, so any frame can be edited by id.
+- Skills: `ask`, `show_word_cloud`, `draw`.
+- Behavior: when the prompt is vague the agent asks questions by default (at most
+  twice), then draws/edits; it may call `draw` multiple times (animation and/or
+  multi-frame edits).
 
-`ApplyAgentOps` queues operations and applies them with a configurable delay to
-produce the "painting live" effect. User can **Stop** or **Skip** at any time;
-every applied op goes through the same undo channel as manual edits.
+| Aspect      | Behavior                                                      |
+| ----------- | ------------------------------------------------------------- |
+| Create      | `draw` without `frameId` (or a new id) adds a frame.          |
+| Edit        | `draw` with an existing `frameId`; `merge` patches cells, `replace` redraws. |
+| Multi-frame | one `draw` call per frame.                                    |
 
 ### 7.5 Providers
 Single interface; implementations differ only by base URL, headers and model
@@ -199,9 +206,8 @@ listing.
 ```ts
 interface LLMProvider {
   id: string;
-  name: string;
-  listModels(apiKey: string): Promise<ModelInfo[]>;
-  streamChat(req: ChatRequest, apiKey: string): AsyncIterable<ChatChunk>;
+  listModels(): Promise<ModelInfo[]>;
+  streamChat(request: ChatRequest, signal?: AbortSignal): AsyncIterable<ChatChunk>;
 }
 ```
 
@@ -209,25 +215,61 @@ Endpoints:
 - **deepinfra** — `https://api.deepinfra.com/v1/openai`
 - **openai** — `https://api.openai.com/v1`
 - **gemini** — `https://generativelanguage.googleapis.com/v1beta/openai`
-- **custom** — user-provided `baseURL` + headers.
+- **custom** — user-provided `baseURL`.
 
-Settings screen: paste API key (persisted in `localStorage` via a service),
-"List models" button (via a use case), model select. Clear warning in the UI
-that keys stay in the browser.
+Settings screen: paste API key (persisted in `IndexedDB`, encrypted with the Web
+Crypto API), "List models" button (via a use case), model input. Clear warning in
+the UI that keys stay in the browser.
 
 ### 7.6 Export
-- **GIF** with `gifenc`, honoring per-frame duration / FPS.
-- **Sprite sheet** PNG via canvas (grid of frames).
-- Implemented as services, triggered from use cases `ExportGif` / `ExportSpriteSheet`.
+- **GIF** with `gifenc`, honoring per-frame duration / FPS and an optional scale.
+- **Sprite sheet** PNG via canvas (grid of frames, columns + scale).
+- **Individual images**: one PNG per frame.
+- Implemented as services, triggered from use cases `ExportGif` /
+  `ExportSpriteSheet` / `ExportFrameImages`.
 
-## 8. Agent Orchestration
+### 7.7 Agent execution architecture
+- **`AgentRunner`** (service): generic loop configured with
+  `{ provider, systemPrompt, skills, maxSteps, temperature }`. It streams text,
+  accumulates tool calls, executes skills (injected), appends `tool` messages and
+  repeats until a final message or `maxSteps`. Supports `AbortSignal`.
+- **`InteractionBroker`** (service): human-in-the-loop bridge. `ask` /
+  `show_word_cloud` skills call `broker.request(interaction)` which stores the
+  pending interaction in `agentStore` and returns a promise; the UI resolves it
+  when the user submits, and the runner continues. `Stop` calls
+  `broker.cancelAll`.
+- Skills live in `useCases/agent` (they may touch the document); `AgentRunner`
+  only knows the `AgentSkill` interface (entities).
 
-- A dedicated use case drives the conversation state machine:
-  `idle → discovery → awaiting_user → generating → done`.
-- Discovery prompt requests structured JSON (questions + word cloud tags).
-- Generation prompt exposes the paint tools and receives `PixelOp` calls.
-- Tool schema restricts coordinates to the project bounds and colors to the
-  active palette to improve output quality.
+### 7.8 Skills
+1. **`ask`** — `questions: { question, options?, multiple? }[]` → returns
+   `{ answers: { question, selected[] }[] }`.
+2. **`show_word_cloud`** — `{ question, clouds: { title?, tags[] }[], multiple }`
+   → returns `{ selected: string[] }`.
+3. **`draw`** — `{ frameId, mode: 'replace' | 'merge', palette, pixels }` →
+   applies the frame (creating it when `frameId` is new) via the shared operation
+   channel (undo/redo consistent), returning `{ frameId, applied }`.
+
+### 7.9 Agent pixel format
+`pixels` is a character grid: one string per row; each character is a palette
+index (`0`-`9` `a`-`z`), `.` or space = transparent. `palette` is an array of hex
+colors (`""` = transparent). Compact and LLM-friendly for 32×32 frames.
+
+## 8. Agent runtime flow
+
+Phases: `idle → running → awaiting_input → running → … → done | error`.
+
+```
+Run → createProvider(settings) → AgentRunner(systemPrompt, skills)
+   → stream text to the panel
+   → tool_call ask / show_word_cloud → suspend (pending interaction) → UI → resolve
+   → tool_call draw → paint frame progressively in batches
+   → final message → done
+Stop → abort fetch + cancelAll pending interactions
+```
+
+Every `draw` is one undo entry; painting is applied in row batches for the
+"painting live" effect.
 
 ## 9. Deployment
 
@@ -236,7 +278,8 @@ that keys stay in the browser.
 - `.github/workflows/deploy.yml`: install → build → `actions/deploy-pages`.
 - Local preview: `npm run build && docker compose up -d` → http://localhost:8080.
 - Routing: **HashRouter** (or a `404.html` redirect) to avoid refresh 404s.
-- No backend ⇒ API keys in `localStorage`; show a security notice.
+- No backend ⇒ API keys in `IndexedDB` (encrypted with the Web Crypto API);
+  show a security notice.
 
 ## 10. Milestones
 
@@ -245,10 +288,10 @@ that keys stay in the browser.
 | M0 | Scaffold Vite + React + TS + Tailwind, empty deploy to Pages       |
 | M1 | Canvas + tools + palette + undo/redo                               |
 | M2 | Timeline, playback, onion skin                                     |
-| M3 | GIF + sprite sheet export                                          |
+| M3 | Export: GIF + sprite sheet + individual images                     |
 | M4 | Provider settings (key, list/select model, custom provider)        |
-| M5 | Agent discovery phase (questions + word cloud)                     |
-| M6 | Agent generation phase (streaming `PixelOp` painted live)          |
+| M5 | Agent architecture (streaming + function calling + `AgentRunner`)  |
+| M6 | Deep Draw agent (questions + word cloud + draw + multi-frame edit) |
 | M7 | Polish: shortcuts, responsiveness, docs                            |
 
 ## 11. Risks / Considerations
