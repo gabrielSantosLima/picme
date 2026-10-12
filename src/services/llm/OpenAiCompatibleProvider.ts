@@ -13,9 +13,15 @@ interface ApiToolCall {
   function: { name: string; arguments: string }
 }
 
+interface ApiContentPart {
+  type: 'text' | 'image_url'
+  text?: string
+  image_url?: { url: string }
+}
+
 interface ApiMessage {
   role: string
-  content: string | null
+  content: string | null | ApiContentPart[]
   tool_call_id?: string
   tool_calls?: ApiToolCall[]
 }
@@ -145,6 +151,12 @@ function toApiMessage(message: ChatMessage): ApiMessage {
   }
   if (message.role === 'tool') {
     return { role: 'tool', content: message.content, tool_call_id: message.toolCallId }
+  }
+  if (message.images && message.images.length > 0) {
+    const parts: ApiContentPart[] = []
+    if (message.content) parts.push({ type: 'text', text: message.content })
+    for (const url of message.images) parts.push({ type: 'image_url', image_url: { url } })
+    return { role: message.role, content: parts }
   }
   return { role: message.role, content: message.content }
 }

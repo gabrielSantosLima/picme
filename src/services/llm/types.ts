@@ -12,6 +12,7 @@ export interface ToolCall {
 export interface ChatMessage {
   role: ChatRole
   content: string | null
+  images?: string[]
   toolCallId?: string
   toolCalls?: ToolCall[]
 }
