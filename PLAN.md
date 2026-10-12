@@ -5,7 +5,7 @@ canvas, draws manually, edits animation frames, and interacts with an AI agent
 that asks questions, suggests ideas (word clouds), and paints the canvas in
 real time. Frames can be exported as GIF or sprite sheet.
 
-> Status: **planning only** — nothing implemented yet.
+> Status: planning — M0/M1 scaffolding done.
 
 ## 1. Goals
 
@@ -25,8 +25,9 @@ real time. Frames can be exported as GIF or sprite sheet.
 | -------------- | ------------------------------------------------------------ |
 | UI             | React + TypeScript                                            |
 | Build/dev      | Vite                                                          |
-| State          | Zustand (document, settings, agent)                           |
+| State          | Zustand (global) + React Context (shared UI)                  |
 | Styling        | Tailwind CSS                                                  |
+| Icons          | `react-icons`                                                 |
 | GIF export     | `gifenc`                                                      |
 | Sprite sheet   | native `<canvas>`                                             |
 | LLM calls      | `fetch` against OpenAI-compatible endpoints (no vendor SDKs)  |
@@ -37,72 +38,110 @@ No backend. API keys are stored only in the browser (`localStorage`).
 ## 3. Decisions (locked)
 
 - **Grid default:** 32×32 (configurable per project).
-- **UI/state:** Tailwind CSS + Zustand.
+- **Styling:** Tailwind CSS.
+- **State:** Zustand for global high-frequency state (document/frames/agent);
+  React Context for shared UI context (active tool, provider, theme).
+- **Icons:** always `react-icons` (never inline SVGs or icon fonts).
+- **Architecture:** layered (entities → services → use cases → hooks/pages/components).
 - **Plan lives in:** `PLAN.md`.
 
-## 4. Project Structure
+## 4. Architecture
+
+Strict one-way dependency flow:
+
+```
+entities   ← services   ← useCases   ← hooks / contexts / pages / components
+   ↑             ↑             ↑
+ no deps     browser/API     business rules
+```
+
+- **entities/** — domain classes only (no React, no I/O). Example: `PixelGrid`,
+  `Frame`, `Project`, `Palette`, `ChatMessage`.
+- **services/** — external communication: LLM provider APIs and browser APIs
+  (`localStorage`, `<canvas>`, downloads). Never imported by UI components.
+- **useCases/** — application use cases. Each exposes a single `execute`
+  method. **All dependencies are injected via the constructor.** Use cases
+  orchestrate services + entities. UI starts a use case, it does not contain rules.
+- **hooks/** — reusable custom hooks shared across components. Call use cases.
+- **contexts/** — shared React Context (React Context API directly).
+- **pages/** — React pages; may use use cases and hooks.
+- **components/** — reusable components; may use use cases and hooks, never
+  services directly.
+- **store/** — Zustand stores for global state. Canvas edits flow through the
+  same operation channel as agent-generated `PixelOp`s so undo/redo stays consistent.
+
+### Use case shape
+
+```ts
+export class DrawPixels {
+  constructor(
+    private readonly documentStore: DocumentStore,
+    private readonly historyStore: HistoryStore,
+  ) {}
+
+  execute(op: SetPixelsOp): void {
+    // validate against project bounds + active palette, then apply
+  }
+}
+```
+
+## 5. Project Structure
 
 ```
 picme/
 ├── .github/workflows/deploy.yml      # build + deploy to Pages
 ├── index.html
-├── vite.config.ts                    # base: '/picme/'
-├── tailwind.config.js
+├── vite.config.ts                    # base '/'; '/picme/' in `pages` mode
+├── docker-compose.yml                # nginx serving ./dist at :8080
 ├── src/
 │   ├── main.tsx
 │   ├── App.tsx
-│   ├── types/
-│   │   └── index.ts
-│   ├── core/
-│   │   ├── canvas/                   # PixelGrid + drawing ops (line, fill, rect)
-│   │   ├── animation/                # Frame model, playback, onion skin
+│   ├── entities/                     # domain classes (no deps)
+│   │   ├── PixelGrid.ts
+│   │   ├── Frame.ts
+│   │   ├── Project.ts
+│   │   ├── Palette.ts
+│   │   └── ChatMessage.ts
+│   ├── services/                     # external + browser APIs
+│   │   ├── storage/                  # localStorage (keys, saved projects)
+│   │   ├── llm/                      # openai, deepinfra, gemini, custom
 │   │   └── export/                   # gif.ts, spritesheet.ts
-│   ├── components/
-│   │   ├── editor/PixelCanvas.tsx
-│   │   ├── editor/Toolbar.tsx
-│   │   ├── editor/ColorPalette.tsx
-│   │   ├── frames/Timeline.tsx
-│   │   ├── agent/AgentBar.tsx        # smart input element
-│   │   ├── agent/ChatPanel.tsx
-│   │   ├── agent/WordCloud.tsx
-│   │   └── settings/ProviderSettings.tsx
-│   ├── agent/
-│   │   ├── AgentOrchestrator.ts      # conversation state machine
-│   │   ├── tools.ts                  # JSON schema for tool calling
-│   │   ├── prompts.ts
-│   │   └── applyOps.ts               # applies PixelOp with progressive reveal
-│   ├── providers/
-│   │   ├── types.ts
-│   │   ├── openai.ts
-│   │   ├── deepinfra.ts
-│   │   ├── gemini.ts
-│   │   ├── custom.ts
-│   │   └── index.ts                  # registry + factory
-│   └── store/
-│       ├── documentStore.ts          # frames, pixels, palette, history
-│       ├── settingsStore.ts          # provider, apiKey, model
-│       └── agentStore.ts             # messages, phase, streaming state
+│   ├── useCases/                     # one class per use case, `execute()`
+│   │   ├── canvas/                   # DrawPixels, ErasePixels, FillArea, ClearCanvas
+│   │   ├── frames/                   # AddFrame, DeleteFrame, DuplicateFrame, ReorderFrames
+│   │   ├── export/                   # ExportGif, ExportSpriteSheet
+│   │   ├── settings/                 # ListModels, SaveProviderConfig
+│   │   └── agent/                    # RunDiscovery, GeneratePixelArt, ApplyAgentOps
+│   ├── hooks/                        # reusable hooks (use use cases)
+│   ├── contexts/                     # React Context providers
+│   ├── store/                        # Zustand stores
+│   ├── pages/                        # EditorPage
+│   └── components/                   # reusable components
+│       ├── editor/                   # PixelCanvas, Toolbar, ColorPalette
+│       ├── frames/                   # Timeline
+│       ├── agent/                    # AgentBar, ChatPanel, WordCloud
+│       └── settings/                 # ProviderSettings
 └── PLAN.md
 ```
 
-## 5. Data Model
+## 6. Data Model (entities)
 
 ```ts
 type RGBA = number; // packed 0xRRGGBBAA
 
-interface PixelGrid {
+class PixelGrid {
   width: number;
   height: number;
   data: Uint32Array;
 }
 
-interface Frame {
+class Frame {
   id: string;
   grid: PixelGrid;
   durationMs: number;
 }
 
-interface Project {
+class Project {
   width: number;
   height: number;
   frames: Frame[];
@@ -112,21 +151,21 @@ interface Project {
 interface ModelInfo { id: string; label: string; }
 ```
 
-## 6. Features
+## 7. Features
 
-### 6.1 Manual editor
+### 7.1 Manual editor
 - Logical grid rendered to a `<canvas>` scaled by an integer zoom with
   `image-rendering: pixelated`.
 - Tools: pencil, eraser, bucket fill, line, rectangle, eyedropper, pan/zoom.
 - Editable palette + swatches.
 - Undo/redo via an operation/snapshot stack.
 
-### 6.2 Timeline / animation
+### 7.2 Timeline / animation
 - Frame list: add, duplicate, delete, reorder, per-frame duration.
 - Global FPS playback with play/pause.
 - Onion skin (previous frame rendered translucent).
 
-### 6.3 Agent bar (top) — smart input
+### 7.3 Agent bar (top) — smart input
 - Text input plus quick-action buttons; keyboard shortcut to focus.
 - Two-phase flow:
   1. **Discovery** — agent asks targeted questions (style, subject, palette,
@@ -135,7 +174,7 @@ interface ModelInfo { id: string; label: string; }
   2. **Generation** — agent emits structured operations that paint the canvas
      progressively.
 
-### 6.4 Agent paints in real time
+### 7.4 Agent paints in real time
 Use tool/function calling with a strict schema instead of free-form text.
 
 ```ts
@@ -149,12 +188,11 @@ type PixelOp =
   | { type: 'deleteFrame'; id: string };
 ```
 
-`applyOps` queues operations and applies them with a configurable delay to
+`ApplyAgentOps` queues operations and applies them with a configurable delay to
 produce the "painting live" effect. User can **Stop** or **Skip** at any time;
 every applied op goes through the same undo channel as manual edits.
 
-### 6.5 Providers
-
+### 7.5 Providers
 Single interface; implementations differ only by base URL, headers and model
 listing.
 
@@ -173,30 +211,34 @@ Endpoints:
 - **gemini** — `https://generativelanguage.googleapis.com/v1beta/openai`
 - **custom** — user-provided `baseURL` + headers.
 
-Settings screen: paste API key (persisted in `localStorage`), "List models"
-button, model select. Clear warning in the UI that keys stay in the browser.
+Settings screen: paste API key (persisted in `localStorage` via a service),
+"List models" button (via a use case), model select. Clear warning in the UI
+that keys stay in the browser.
 
-### 6.6 Export
+### 7.6 Export
 - **GIF** with `gifenc`, honoring per-frame duration / FPS.
 - **Sprite sheet** PNG via canvas (grid of frames).
+- Implemented as services, triggered from use cases `ExportGif` / `ExportSpriteSheet`.
 
-## 7. Agent Orchestration
+## 8. Agent Orchestration
 
-- `AgentOrchestrator` is an explicit state machine:
+- A dedicated use case drives the conversation state machine:
   `idle → discovery → awaiting_user → generating → done`.
 - Discovery prompt requests structured JSON (questions + word cloud tags).
 - Generation prompt exposes the paint tools and receives `PixelOp` calls.
 - Tool schema restricts coordinates to the project bounds and colors to the
   active palette to improve output quality.
 
-## 8. Deployment (GitHub Pages)
+## 9. Deployment
 
-- `vite.config.ts`: `base: '/picme/'` (match repo name).
+- Vite `base` is `/` for local/dev and `/picme/` in `pages` mode
+  (`npm run build:pages`).
 - `.github/workflows/deploy.yml`: install → build → `actions/deploy-pages`.
+- Local preview: `npm run build && docker compose up -d` → http://localhost:8080.
 - Routing: **HashRouter** (or a `404.html` redirect) to avoid refresh 404s.
 - No backend ⇒ API keys in `localStorage`; show a security notice.
 
-## 9. Milestones
+## 10. Milestones
 
 | #  | Deliverable                                                        |
 | -- | ------------------------------------------------------------------ |
@@ -209,7 +251,7 @@ button, model select. Clear warning in the UI that keys stay in the browser.
 | M6 | Agent generation phase (streaming `PixelOp` painted live)          |
 | M7 | Polish: shortcuts, responsiveness, docs                            |
 
-## 10. Risks / Considerations
+## 11. Risks / Considerations
 
 - **CORS:** some providers may block direct browser calls; validate per provider
   (Gemini/DeepInfra are generally fine). Documented fallback: user-provided proxy.
@@ -217,4 +259,3 @@ button, model select. Clear warning in the UI that keys stay in the browser.
   essential for usable output.
 - **GIF libraries:** few are actively maintained; `gifenc` is fast and avoids
   heavy workers.
-```

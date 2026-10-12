@@ -15,8 +15,9 @@ See `PLAN.md` for the full design. Implement in milestone order (M0 → M7).
 
 - React + TypeScript
 - Vite (build/dev)
-- Zustand (state: document, settings, agent)
+- Zustand (global state) + React Context (shared UI context)
 - Tailwind CSS (styling)
+- `react-icons` (all icons)
 - `gifenc` (GIF export); native `<canvas>` for sprite sheets
 - LLM calls via `fetch` to OpenAI-compatible endpoints (no vendor SDKs)
 - Deploy: GitHub Actions → GitHub Pages
@@ -43,14 +44,38 @@ Note: Tailwind CSS v4 is configured through the `@tailwindcss/vite` plugin and
 - Follow existing patterns in neighboring files before introducing new abstractions.
 - Never assume a library exists — verify it is already used in the project first.
 - Keep components small and colocated by feature (see `PLAN.md` structure).
-- State changes go through the Zustand stores; canvas edits flow through the
-  same operation channel as agent-generated `PixelOp`s so undo/redo stays consistent.
+- Icons must come from `react-icons`; never add inline SVGs or icon fonts.
+- State: Zustand for global high-frequency state (document/frames/agent);
+  React Context for shared UI context (active tool, provider, theme).
+- Canvas edits flow through the same operation channel as agent-generated
+  `PixelOp`s so undo/redo stays consistent.
 - Providers implement the single `LLMProvider` interface; differ only by base URL,
   headers, and model listing.
 - API keys are stored only in the browser (`localStorage`). Never commit secrets,
   never log keys, and show a client-side security notice in the UI.
 
 ## Architecture Rules
+
+Strict one-way dependency flow:
+
+```
+entities   ← services   ← useCases   ← hooks / contexts / pages / components
+   ↑             ↑             ↑
+ no deps     browser/API     business rules
+```
+
+- **entities/** — domain classes only; no React, no I/O.
+- **services/** — external APIs (LLM providers) and browser APIs (`localStorage`,
+  `<canvas>`, downloads). Never imported directly by UI components.
+- **useCases/** — one class per use case with a single `execute` method;
+  dependencies injected via the constructor; orchestrate services + entities.
+- **hooks/** — reusable hooks shared across components; call use cases.
+- **contexts/** — shared React Context (React Context API).
+- **pages/** — may use use cases and hooks.
+- **components/** — may use use cases and hooks, never services directly.
+- **store/** — Zustand stores for global state.
+
+Rules:
 
 - No backend. Never introduce server-side code or secrets in the repo.
 - The agent uses tool/function calling with a strict schema, not free-form text.
