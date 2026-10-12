@@ -7,7 +7,7 @@ export function ColorPalette() {
     useEditorContext()
 
   return (
-    <div className="flex w-52 shrink-0 flex-col gap-3 border-r border-neutral-800 bg-neutral-900 p-3">
+    <div className="flex h-full w-full flex-col gap-3 overflow-y-auto bg-neutral-900 p-3">
       <div className="flex items-center gap-4">
         <button type="button" onClick={swapColors} title="Swap colors" className="relative h-10 w-10">
           <span
