@@ -3,14 +3,14 @@ import type { InteractionBroker } from '../../services/agent/InteractionBroker'
 import type { DocumentRepository } from '../../services/document/DocumentRepository'
 import { applyDrawPayload } from './applyDrawPayload'
 
-const VARIANT_SIZE = 16
+const VARIANT_SIZE = 32
 
 const PARAMETERS: JsonSchema = {
   type: 'object',
   properties: {
     variants: {
       type: 'array',
-      description: 'Two or three different full designs, each a 16x16 character grid.',
+      description: 'Two or three different full designs, each a 32x32 character grid.',
       items: {
         type: 'object',
         properties: {
@@ -50,23 +50,6 @@ function normalizeVariant(raw: RawVariant, index: number): ArtVariant {
   }
 }
 
-function upscale(variant: ArtVariant, width: number, height: number): string[] {
-  const vh = variant.pixels.length
-  const vw = variant.pixels[0]?.length ?? 0
-  const rows: string[] = []
-  for (let y = 0; y < height; y += 1) {
-    const sy = Math.min(vh - 1, Math.floor((y * vh) / height))
-    const source = variant.pixels[sy] ?? ''
-    let row = ''
-    for (let x = 0; x < width; x += 1) {
-      const sx = Math.min(vw - 1, Math.floor((x * vw) / width))
-      row += source[sx] ?? '.'
-    }
-    rows.push(row)
-  }
-  return rows
-}
-
 export class ProposeVariants {
   constructor(
     private readonly document: DocumentRepository,
@@ -87,10 +70,9 @@ export class ProposeVariants {
 
     const selected = Math.max(0, Math.min(variants.length - 1, result?.selected ?? 0))
     const chosen = variants[selected]
-    const project = this.document.getProject()
     const { frameId } = await applyDrawPayload(this.document, {
       palette: chosen.palette,
-      pixels: upscale(chosen, project.width, project.height),
+      pixels: chosen.pixels,
       mode: 'replace',
     })
     return { selected, frameId, name: chosen.name }
