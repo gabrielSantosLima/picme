@@ -36,8 +36,15 @@ interface StreamChoice {
   finish_reason?: string | null
 }
 
+interface StreamUsage {
+  prompt_tokens?: number
+  completion_tokens?: number
+  total_tokens?: number
+}
+
 interface StreamChunk {
   choices?: StreamChoice[]
+  usage?: StreamUsage
 }
 
 export class OpenAiCompatibleProvider implements LLMProvider {
@@ -80,6 +87,7 @@ export class OpenAiCompatibleProvider implements LLMProvider {
         temperature: request.temperature,
         reasoning_effort: request.reasoningEffort,
         stream: true,
+        stream_options: { include_usage: true },
       }),
       signal,
     })
@@ -101,6 +109,14 @@ export class OpenAiCompatibleProvider implements LLMProvider {
         continue
       }
       const choice = chunk.choices?.[0]
+      if (chunk.usage) {
+        yield {
+          type: 'usage',
+          promptTokens: chunk.usage.prompt_tokens ?? 0,
+          completionTokens: chunk.usage.completion_tokens ?? 0,
+          totalTokens: chunk.usage.total_tokens ?? 0,
+        }
+      }
       if (!choice) continue
       if (choice.delta?.content) yield { type: 'text', text: choice.delta.content }
       if (choice.delta?.tool_calls) {

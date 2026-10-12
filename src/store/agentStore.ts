@@ -3,10 +3,12 @@ import type { AgentPhase, PendingInteraction } from '../entities/agent'
 
 export type AgentEntry =
   | { id: string; kind: 'message'; role: 'user' | 'assistant' | 'error'; content: string }
+  | { id: string; kind: 'divider'; label: string }
   | { id: string; kind: 'skill'; name: string; status: 'running' | 'done'; args: string; result: string }
 
 export type AgentEntryInput =
   | { kind: 'message'; role: 'user' | 'assistant' | 'error'; content: string }
+  | { kind: 'divider'; label: string }
   | { kind: 'skill'; name: string; status: 'running' | 'done'; args: string; result: string }
 
 export type RightTab = 'layers' | 'agent'
@@ -16,10 +18,12 @@ interface AgentStoreState {
   phase: AgentPhase
   entries: AgentEntry[]
   streamingText: string
+  tokens: number
   pendingInteraction: PendingInteraction | null
   setRightTab: (tab: RightTab) => void
   setPhase: (phase: AgentPhase) => void
   setStreaming: (text: string) => void
+  addTokens: (count: number) => void
   setPending: (pending: PendingInteraction | null) => void
   addEntry: (entry: AgentEntryInput) => string
   updateEntry: (id: string, patch: Record<string, unknown>) => void
@@ -32,10 +36,12 @@ export const useAgentStore = create<AgentStoreState>((set) => ({
   phase: 'idle',
   entries: [],
   streamingText: '',
+  tokens: 0,
   pendingInteraction: null,
   setRightTab: (rightTab) => set({ rightTab }),
   setPhase: (phase) => set({ phase }),
   setStreaming: (streamingText) => set({ streamingText }),
+  addTokens: (count) => set((state) => ({ tokens: state.tokens + count })),
   setPending: (pendingInteraction) => set({ pendingInteraction }),
   addEntry: (entry) => {
     const id = crypto.randomUUID()

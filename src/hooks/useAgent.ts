@@ -39,12 +39,15 @@ export function useAgent() {
   }
 
   const stop = () => {
+    const store = useAgentStore.getState()
+    const active = store.phase === 'running' || store.phase === 'awaiting_input'
     currentAbort?.abort()
     currentAbort = null
     getBroker().cancelAll(new Error('Agent run cancelled'))
-    const store = useAgentStore.getState()
     store.setPending(null)
     store.setPhase('idle')
+    store.setStreaming('')
+    if (active) store.addEntry({ kind: 'divider', label: 'Execution interrupted' })
   }
 
   const run = async (prompt: string) => {
@@ -73,13 +76,29 @@ export function useAgent() {
     const history: ChatMessage[] = conversation.map((message) => ({ ...message }))
     const pendingSkills: Array<{ id: string; name: string }> = []
     let buffer = ''
+    let stepChars = 0
+    let stepTokens = 0
+    let hasUsage = false
+
+    const flushStepTokens = () => {
+      const value = hasUsage ? stepTokens : Math.ceil(stepChars / 4)
+      if (value > 0) store().addTokens(value)
+      stepChars = 0
+      stepTokens = 0
+      hasUsage = false
+    }
 
     try {
       for await (const event of runner.run(history, { emit: () => undefined }, controller.signal)) {
         if (event.type === 'text') {
           buffer += event.text
+          stepChars += event.text.length
           store().setStreaming(buffer)
+        } else if (event.type === 'usage') {
+          hasUsage = true
+          stepTokens = event.totalTokens
         } else if (event.type === 'tool_call') {
+          flushStepTokens()
           const reasoning = buffer.trim()
           if (reasoning) {
             store().addEntry({ kind: 'message', role: 'assistant', content: reasoning })
@@ -99,6 +118,7 @@ export function useAgent() {
           const skill = index >= 0 ? pendingSkills.splice(index, 1)[0] : undefined
           if (skill) store().updateEntry(skill.id, { status: 'done', result: stringify(event.result) })
         } else if (event.type === 'message') {
+          flushStepTokens()
           const content = buffer.trim() || event.content.trim()
           if (content) {
             store().addEntry({ kind: 'message', role: 'assistant', content })
@@ -108,6 +128,7 @@ export function useAgent() {
           store().setStreaming('')
           store().setPhase('done')
         } else if (event.type === 'error') {
+          flushStepTokens()
           store().addEntry({ kind: 'message', role: 'error', content: event.error })
           buffer = ''
           store().setStreaming('')

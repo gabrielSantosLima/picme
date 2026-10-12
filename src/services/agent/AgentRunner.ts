@@ -79,6 +79,8 @@ export class AgentRunner {
             if (chunk.name) entry.name += chunk.name
             if (chunk.argsDelta) entry.args += chunk.argsDelta
             partial.set(chunk.index, entry)
+          } else if (chunk.type === 'usage') {
+            yield { type: 'usage', totalTokens: chunk.totalTokens }
           }
         }
       } catch (error) {

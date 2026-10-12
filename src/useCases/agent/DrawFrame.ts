@@ -13,7 +13,19 @@ const PARAMETERS: JsonSchema = {
     mode: {
       type: 'string',
       enum: ['replace', 'merge'],
-      description: 'replace redraws the whole frame; merge only paints non-transparent cells.',
+      description: 'replace redraws the whole target; merge only paints non-transparent cells.',
+    },
+    region: {
+      type: 'object',
+      description:
+        'Optional sub-rectangle to draw into. When set, "pixels" must have region.height rows of region.width characters.',
+      properties: {
+        x: { type: 'number' },
+        y: { type: 'number' },
+        width: { type: 'number' },
+        height: { type: 'number' },
+      },
+      required: ['x', 'y', 'width', 'height'],
     },
     palette: {
       type: 'array',
@@ -46,6 +58,28 @@ export class DrawFrame {
     const width = initial.width
     const height = initial.height
 
+    const region = payload.region
+    const originX = region ? Math.max(0, Math.floor(region.x)) : 0
+    const originY = region ? Math.max(0, Math.floor(region.y)) : 0
+    const regionWidth = region
+      ? Math.max(1, Math.min(Math.floor(region.width), width - originX))
+      : width
+    const regionHeight = region
+      ? Math.max(1, Math.min(Math.floor(region.height), height - originY))
+      : height
+
+    if (rows.length !== regionHeight) {
+      return {
+        error: `Invalid grid: expected ${regionHeight} rows but received ${rows.length}. Redraw with exactly ${regionHeight} rows of ${regionWidth} characters each.`,
+      }
+    }
+    const badRow = rows.findIndex((row) => typeof row !== 'string' || row.length !== regionWidth)
+    if (badRow !== -1) {
+      return {
+        error: `Invalid grid: row ${badRow + 1} must have exactly ${regionWidth} characters. Redraw with exactly ${regionHeight} rows of ${regionWidth} characters each.`,
+      }
+    }
+
     this.document.beginStroke()
 
     let frameIndex = payload.frameId
@@ -66,20 +100,19 @@ export class DrawFrame {
 
     const frameId = this.document.getProject().frames[frameIndex]?.id ?? ''
 
-    const batch = Math.max(1, Math.ceil(height / 8))
-    for (let start = 0; start < height; start += batch) {
+    const batch = Math.max(1, Math.ceil(regionHeight / 8))
+    for (let start = 0; start < regionHeight; start += batch) {
       await delay(16)
       this.document.update((project) => {
         const layer = project.frames[frameIndex]?.activeLayer
         if (!layer) return
-        const end = Math.min(start + batch, height)
+        const end = Math.min(start + batch, regionHeight)
         for (let y = start; y < end; y += 1) {
           const row = rows[y]
-          if (!row) continue
-          for (let x = 0; x < width; x += 1) {
+          for (let x = 0; x < regionWidth; x += 1) {
             const color = rowColor(row, colors, x)
             if (mode === 'merge' && color === 0) continue
-            layer.grid.set(x, y, color)
+            layer.grid.set(originX + x, originY + y, color)
           }
         }
       })
@@ -93,7 +126,7 @@ export class DrawFrame {
     return {
       name: 'draw',
       description:
-        'Draw or edit a frame from a palette and a character grid. Creates the frame when frameId is unknown.',
+        'Draw or edit a frame from a palette and a character grid. Creates the frame when frameId is unknown. Optionally draw only a sub-rectangle via "region".',
       parameters: PARAMETERS,
       execute: (args) => this.execute(args),
     }

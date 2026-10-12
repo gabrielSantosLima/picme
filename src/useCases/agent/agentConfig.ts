@@ -26,8 +26,10 @@ const DRAW_FORMAT = `Pixel format for "draw":
 - "palette": array of hex colors like ["#000000", "", "#ff004d"]; "" means transparent.
 - Characters "0"-"9" then "a"-"z" address palette positions 0-35.
 - "pixels": one string per row, each character is a palette index; "." or " " is transparent.
-- "mode": "replace" redraws the whole frame, "merge" paints only non-transparent cells.
-- "frameId": an existing id from the list, or omit to create a new frame.`
+- "mode": "replace" redraws the whole target, "merge" paints only non-transparent cells.
+- "region": optional { x, y, width, height } to draw only a sub-rectangle; then "pixels" must have exactly region.height rows of region.width characters.
+- "frameId": an existing id from the list, or omit to create a new frame.
+The "draw" call is rejected (and must be retried) if row/column counts are wrong.`
 
 function framesContext(project: Project): string {
   const parts: string[] = []
@@ -57,6 +59,14 @@ Workflow (repeat as needed):
 2. Draw: use "draw" to create or edit the art.
 3. Refine again when more detail would help, then draw again. Iterate refinement -> draw.
 4. End: when the result is good, stop calling tools and reply with a short summary message.
+
+Drawing pipeline (build the art in passes with multiple "draw" calls):
+1. Base: block the main silhouette with 1-2 colors (mode "replace").
+2. Shapes: fill the main color areas (mode "merge").
+3. Details: add small features, targeting parts with "region" (mode "merge").
+4. Shading: add highlights and shadows with 1-2 extra colors (mode "merge").
+5. Outline: add an optional dark outline around the silhouette (mode "merge").
+Keep the art readable: at most 8 colors, clear centered shapes, 1px margin, transparent background.
 
 Tool usage:
 - Use "ask" to ask up to 4 concise multiple-choice questions.

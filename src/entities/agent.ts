@@ -23,6 +23,7 @@ export type AgentEvent =
   | { type: 'text'; text: string }
   | { type: 'tool_call'; name: string; args: unknown }
   | { type: 'tool_result'; name: string; result: unknown }
+  | { type: 'usage'; totalTokens: number }
   | { type: 'message'; content: string }
   | { type: 'error'; error: string }
 
@@ -54,9 +55,17 @@ export interface QuestionAnswer {
   selected: string[]
 }
 
+export interface DrawRegion {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface DrawPayload {
   frameId?: string
   mode?: 'replace' | 'merge'
+  region?: DrawRegion
   palette: string[]
   pixels: string[]
 }

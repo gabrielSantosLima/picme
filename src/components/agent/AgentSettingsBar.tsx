@@ -4,6 +4,7 @@ import { TbCpu } from 'react-icons/tb'
 import { useProvider } from '../../contexts/ProviderContext'
 import type { ReasoningEffort } from '../../entities/provider'
 import { ProviderSettingsDialog } from '../settings/ProviderSettingsDialog'
+import { TokenMeter } from './TokenMeter'
 
 const REASONING_LEVELS: ReasoningEffort[] = ['default', 'minimal', 'low', 'medium', 'high']
 
@@ -74,6 +75,8 @@ export function AgentSettingsBar() {
         </select>
         <LuChevronDown className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-neutral-500" />
       </div>
+
+      <TokenMeter />
 
       <button
         type="button"

@@ -44,4 +44,5 @@ export type ChatChunk =
       name?: string
       argsDelta?: string
     }
+  | { type: 'usage'; promptTokens: number; completionTokens: number; totalTokens: number }
   | { type: 'finish'; reason: string }
