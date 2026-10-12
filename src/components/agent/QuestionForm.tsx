@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import type { QuestionSpec } from '../../entities/agent'
 
-function chip(selected: boolean): string {
+function optionClass(selected: boolean): string {
   return [
-    'rounded-full border px-2.5 py-0.5 text-xs transition-colors focus:outline-none',
+    'flex w-full items-center gap-2 rounded border px-2.5 py-1.5 text-left text-xs transition-colors focus:outline-none',
     selected
-      ? 'border-sky-400 bg-sky-500 text-white'
-      : 'border-neutral-600 bg-neutral-800 text-neutral-200 hover:border-neutral-500',
+      ? 'border-sky-400 bg-sky-500/20 text-white'
+      : 'border-neutral-700 bg-neutral-900 text-neutral-200 hover:border-neutral-500',
   ].join(' ')
 }
 
@@ -44,22 +44,31 @@ export function QuestionForm({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded border border-sky-500/40 bg-neutral-800/60 p-3">
+    <div className="flex flex-col gap-4 rounded border border-sky-500/40 bg-neutral-800/60 p-3">
       {questions.map((question, index) => (
-        <div key={index} className="flex flex-col gap-1">
-          <p className="text-xs font-medium text-neutral-200">{question.question}</p>
+        <div key={index} className="flex flex-col gap-2">
+          <p className="text-xs font-medium text-neutral-100">{question.question}</p>
           {question.options && question.options.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {question.options.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => toggle(index, option, Boolean(question.multiple))}
-                  className={chip((answers[index] ?? []).includes(option))}
-                >
-                  {option}
-                </button>
-              ))}
+            <div className="flex flex-col gap-1.5">
+              {question.options.map((option) => {
+                const selected = (answers[index] ?? []).includes(option)
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => toggle(index, option, Boolean(question.multiple))}
+                    className={optionClass(selected)}
+                  >
+                    <span
+                      className={[
+                        'flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border',
+                        selected ? 'border-sky-300 bg-sky-400' : 'border-neutral-500',
+                      ].join(' ')}
+                    />
+                    {option}
+                  </button>
+                )
+              })}
             </div>
           ) : (
             <input
@@ -71,7 +80,7 @@ export function QuestionForm({
                   [index]: event.target.value ? [event.target.value] : [],
                 }))
               }
-              className="rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-sm text-neutral-100 focus:outline-none focus:border-sky-500"
+              className="w-full rounded border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-xs text-neutral-100 focus:outline-none focus:border-sky-500"
             />
           )}
         </div>
@@ -79,7 +88,7 @@ export function QuestionForm({
       <button
         type="button"
         onClick={submit}
-        className="self-end rounded bg-sky-500 px-3 py-1 text-sm font-medium text-white hover:bg-sky-400 focus:outline-none"
+        className="w-full rounded bg-sky-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-400 focus:outline-none"
       >
         Submit answer
       </button>
