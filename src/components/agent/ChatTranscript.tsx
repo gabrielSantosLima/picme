@@ -71,8 +71,37 @@ function VariantsEntry({ variants, selected }: { variants: ArtVariant[]; selecte
   )
 }
 
+function renderWithLinks(text: string) {
+  const parts = text.split(/(https?:\/\/[^\s)]+)/g)
+  return parts.map((part, index) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={index}
+        href={part}
+        target="_blank"
+        rel="noreferrer"
+        className="underline hover:text-red-200"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={index}>{part}</span>
+    ),
+  )
+}
+
 function renderEntry(entry: AgentEntry) {
   if (entry.kind === 'message') {
+    if (entry.role === 'error') {
+      return (
+        <div
+          key={entry.id}
+          className="max-w-[92%] self-start whitespace-pre-wrap break-words rounded border border-red-500/40 bg-red-500/10 px-2 py-1.5 text-xs text-red-300"
+        >
+          {renderWithLinks(entry.content)}
+        </div>
+      )
+    }
     return (
       <div key={entry.id} className={rowClass(entry.role)}>
         <span className="whitespace-pre-wrap">{entry.content}</span>

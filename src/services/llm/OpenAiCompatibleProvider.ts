@@ -1,5 +1,6 @@
 import type { ModelInfo } from '../../entities/provider'
 import type { LLMProvider } from './LLMProvider'
+import { formatHttpError } from './errors'
 import { readSse } from './sse'
 import type { ChatChunk, ChatMessage, ChatRequest, ToolCall } from './types'
 
@@ -56,9 +57,9 @@ interface StreamChunk {
 export class OpenAiCompatibleProvider implements LLMProvider {
   constructor(
     readonly id: string,
-    private readonly baseUrl: string,
-    private readonly apiKey: string,
-    private readonly model: string,
+    protected readonly baseUrl: string,
+    protected readonly apiKey: string,
+    protected readonly model: string,
   ) {}
 
   private endpoint(path: string): string {
@@ -69,7 +70,10 @@ export class OpenAiCompatibleProvider implements LLMProvider {
     const response = await fetch(this.endpoint('/models'), {
       headers: { Authorization: `Bearer ${this.apiKey}` },
     })
-    if (!response.ok) throw new Error(`Failed to list models (HTTP ${response.status})`)
+    if (!response.ok) {
+      const body = await response.text().catch(() => '')
+      throw new Error(formatHttpError(response.status, body))
+    }
     const body = (await response.json()) as ModelsResponse
     const models = Array.isArray(body.data) ? body.data : []
     return models
@@ -100,9 +104,7 @@ export class OpenAiCompatibleProvider implements LLMProvider {
 
     if (!response.ok) {
       const detail = await response.text().catch(() => '')
-      throw new Error(
-        `Chat request failed (HTTP ${response.status})${detail ? `: ${detail}` : ''}`,
-      )
+      throw new Error(formatHttpError(response.status, detail))
     }
     if (!response.body) throw new Error('Streaming is not supported in this environment')
 
