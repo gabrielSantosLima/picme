@@ -17,7 +17,7 @@ export function AgentInput() {
   }
 
   return (
-    <div className="flex items-center gap-2 border-t border-neutral-800 p-3">
+    <div className="flex items-stretch gap-2 border-t border-neutral-800 p-3">
       <textarea
         value={prompt}
         onChange={(event) => setPrompt(event.target.value)}
@@ -36,7 +36,7 @@ export function AgentInput() {
           type="button"
           onClick={stop}
           title="Stop"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-red-500 text-white hover:bg-red-400 focus:outline-none"
+          className="flex w-10 shrink-0 items-center justify-center rounded bg-red-500 text-white hover:bg-red-400 focus:outline-none"
         >
           <LuSquare />
         </button>
@@ -45,7 +45,7 @@ export function AgentInput() {
           type="button"
           onClick={submit}
           title="Run"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-sky-500 text-white hover:bg-sky-400 focus:outline-none"
+          className="flex w-10 shrink-0 items-center justify-center rounded bg-sky-500 text-white hover:bg-sky-400 focus:outline-none"
         >
           <LuSend />
         </button>
