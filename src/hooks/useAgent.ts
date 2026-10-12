@@ -78,6 +78,7 @@ export function useAgent() {
     const config = buildAgentConfig({
       broker: getBroker(),
       document: useDocumentStore.getState(),
+      includeImage: settings.sendCanvasImage,
     })
     const runner = new AgentRunner({
       provider: createProvider(settings),
@@ -91,10 +92,12 @@ export function useAgent() {
     const controller = new AbortController()
     currentAbort = controller
     const history: ChatMessage[] = conversation.map((message) => ({ ...message }))
-    const image = frameToDataUrl(useDocumentStore.getState().getProject())
-    if (image && history.length > 0) {
-      const lastIndex = history.length - 1
-      history[lastIndex] = { ...history[lastIndex], images: [image] }
+    if (settings.sendCanvasImage) {
+      const image = frameToDataUrl(useDocumentStore.getState().getProject())
+      if (image && history.length > 0) {
+        const lastIndex = history.length - 1
+        history[lastIndex] = { ...history[lastIndex], images: [image] }
+      }
     }
     const pendingSkills: Array<{ id: string; name: string }> = []
     let buffer = ''

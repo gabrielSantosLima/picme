@@ -61,6 +61,7 @@ export interface ProviderSettings {
   model: string
   apiKey: string
   reasoningEffort: ReasoningEffort
+  sendCanvasImage: boolean
 }
 
 export interface EncryptedValue {
@@ -73,6 +74,7 @@ export interface StoredProviderSettings {
   baseUrl: string
   model: string
   reasoningEffort?: ReasoningEffort
+  sendCanvasImage?: boolean
   encryptedApiKey: EncryptedValue | null
 }
 

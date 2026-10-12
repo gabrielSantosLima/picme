@@ -48,6 +48,7 @@ export class IndexedDbProviderSettingsRepository implements ProviderSettingsRepo
       model: stored.model,
       apiKey,
       reasoningEffort: stored.reasoningEffort ?? 'default',
+      sendCanvasImage: stored.sendCanvasImage ?? true,
     }
   }
 
@@ -60,6 +61,7 @@ export class IndexedDbProviderSettingsRepository implements ProviderSettingsRepo
       baseUrl: settings.baseUrl,
       model: settings.model,
       reasoningEffort: settings.reasoningEffort,
+      sendCanvasImage: settings.sendCanvasImage,
       encryptedApiKey,
     }
     await idbPut(db, STORE, SETTINGS_KEY, stored)

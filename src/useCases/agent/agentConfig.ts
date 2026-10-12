@@ -14,6 +14,7 @@ const MAX_STEPS = 8
 export interface AgentConfigDeps {
   broker: InteractionBroker
   document: DocumentRepository
+  includeImage: boolean
 }
 
 export interface AgentConfig {
@@ -30,12 +31,15 @@ const DRAW_FORMAT = `Tools:
   - pixels: one string per row; "." or " " = transparent.
   - region draws only a sub-rectangle (pixels = region.height rows of region.width chars).`
 
-function systemPrompt(project: Project): string {
+function systemPrompt(project: Project, includeImage: boolean): string {
   const ids = project.frames.map((frame, index) => `${index + 1}=${frame.id}`).join(', ')
+  const canvasLine = includeImage
+    ? 'An image of the current canvas (active frame) is attached to the user message. Use it as reference.'
+    : 'You do not have the canvas image. Use "read_frame" if you need a frame\'s exact pixels.'
   return `You are PicMe's pixel-art agent. Create and edit animated pixel art.
 
 Canvas ${project.width}x${project.height}. Frames: ${project.frames.length} (${ids}); max ${MAX_FRAMES}.
-An image of the current canvas (active frame) is attached to the user message. Use it as reference.
+${canvasLine}
 
 How to work:
 - Vague request: clarify with "ask" (multiple choice) and/or "show_word_cloud" (max twice).
@@ -58,5 +62,5 @@ export function buildAgentConfig(deps: AgentConfigDeps): AgentConfig {
     new ReadFrame(deps.document).toSkill(),
     new DrawFrame(deps.document).toSkill(),
   ]
-  return { systemPrompt: systemPrompt(project), skills, maxSteps: MAX_STEPS }
+  return { systemPrompt: systemPrompt(project, deps.includeImage), skills, maxSteps: MAX_STEPS }
 }
