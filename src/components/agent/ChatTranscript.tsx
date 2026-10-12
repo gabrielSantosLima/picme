@@ -78,18 +78,19 @@ export function ChatTranscript() {
   const entries = useAgentStore((state) => state.entries)
   const streamingText = useAgentStore((state) => state.streamingText)
   const phase = useAgentStore((state) => state.phase)
+  const preparing = useAgentStore((state) => state.preparing)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const element = scrollRef.current
     if (element) element.scrollTop = element.scrollHeight
-  }, [entries, streamingText, phase])
+  }, [entries, streamingText, phase, preparing])
 
-  const thinking = phase === 'running' && streamingText.length === 0
+  const busy = phase === 'running' && streamingText.length === 0
 
   return (
     <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3 text-sm">
-      {entries.length === 0 && streamingText.length === 0 && !thinking && (
+      {entries.length === 0 && streamingText.length === 0 && !busy && (
         <p className="text-xs text-neutral-500">Describe what you want to draw.</p>
       )}
 
@@ -101,10 +102,10 @@ export function ChatTranscript() {
         </div>
       )}
 
-      {thinking && (
+      {busy && (
         <div className="flex items-center gap-2 text-xs text-neutral-500">
           <span className="h-2 w-2 animate-pulse rounded-full bg-sky-400" />
-          Thinking
+          {preparing ? `Preparing ${preparing}…` : 'Thinking'}
         </div>
       )}
     </div>

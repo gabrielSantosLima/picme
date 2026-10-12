@@ -47,6 +47,7 @@ export function useAgent() {
     store.setPending(null)
     store.setPhase('idle')
     store.setStreaming('')
+    store.setPreparing(null)
     if (active) store.addEntry({ kind: 'divider', label: 'Execution interrupted' })
   }
 
@@ -54,6 +55,7 @@ export function useAgent() {
     if (!configured || !settings) return
     const store = () => useAgentStore.getState()
     store().setStreaming('')
+    store().setPreparing(null)
     store().setPhase('running')
     store().addEntry({ kind: 'message', role: 'user', content: prompt })
     conversation.push({ role: 'user', content: prompt })
@@ -97,8 +99,11 @@ export function useAgent() {
         } else if (event.type === 'usage') {
           hasUsage = true
           stepTokens = event.totalTokens
+        } else if (event.type === 'tool_preparing') {
+          store().setPreparing(event.name)
         } else if (event.type === 'tool_call') {
           flushStepTokens()
+          store().setPreparing(null)
           const reasoning = buffer.trim()
           if (reasoning) {
             store().addEntry({ kind: 'message', role: 'assistant', content: reasoning })
@@ -119,6 +124,7 @@ export function useAgent() {
           if (skill) store().updateEntry(skill.id, { status: 'done', result: stringify(event.result) })
         } else if (event.type === 'message') {
           flushStepTokens()
+          store().setPreparing(null)
           const content = buffer.trim() || event.content.trim()
           if (content) {
             store().addEntry({ kind: 'message', role: 'assistant', content })
@@ -129,6 +135,7 @@ export function useAgent() {
           store().setPhase('done')
         } else if (event.type === 'error') {
           flushStepTokens()
+          store().setPreparing(null)
           store().addEntry({ kind: 'message', role: 'error', content: event.error })
           buffer = ''
           store().setStreaming('')

@@ -19,11 +19,13 @@ interface AgentStoreState {
   entries: AgentEntry[]
   streamingText: string
   tokens: number
+  preparing: string | null
   pendingInteraction: PendingInteraction | null
   setRightTab: (tab: RightTab) => void
   setPhase: (phase: AgentPhase) => void
   setStreaming: (text: string) => void
   addTokens: (count: number) => void
+  setPreparing: (name: string | null) => void
   setPending: (pending: PendingInteraction | null) => void
   addEntry: (entry: AgentEntryInput) => string
   updateEntry: (id: string, patch: Record<string, unknown>) => void
@@ -37,11 +39,13 @@ export const useAgentStore = create<AgentStoreState>((set) => ({
   entries: [],
   streamingText: '',
   tokens: 0,
+  preparing: null,
   pendingInteraction: null,
   setRightTab: (rightTab) => set({ rightTab }),
   setPhase: (phase) => set({ phase }),
   setStreaming: (streamingText) => set({ streamingText }),
   addTokens: (count) => set((state) => ({ tokens: state.tokens + count })),
+  setPreparing: (preparing) => set({ preparing }),
   setPending: (pendingInteraction) => set({ pendingInteraction }),
   addEntry: (entry) => {
     const id = crypto.randomUUID()

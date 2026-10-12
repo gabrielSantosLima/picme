@@ -67,6 +67,7 @@ export class AgentRunner {
 
       const textParts: string[] = []
       const partial = new Map<number, PartialToolCall>()
+      const announced = new Set<number>()
 
       try {
         for await (const chunk of this.options.provider.streamChat(request, signal)) {
@@ -79,6 +80,10 @@ export class AgentRunner {
             if (chunk.name) entry.name += chunk.name
             if (chunk.argsDelta) entry.args += chunk.argsDelta
             partial.set(chunk.index, entry)
+            if (entry.name.length > 0 && !announced.has(chunk.index)) {
+              announced.add(chunk.index)
+              yield { type: 'tool_preparing', name: entry.name }
+            }
           } else if (chunk.type === 'usage') {
             yield { type: 'usage', totalTokens: chunk.totalTokens }
           }
@@ -133,6 +138,9 @@ export class AgentRunner {
       }
     }
 
-    yield { type: 'error', error: `Agent stopped after ${maxSteps} steps` }
+    yield {
+      type: 'message',
+      content: 'I reached the step limit. Tell me if you want me to keep refining.',
+    }
   }
 }
