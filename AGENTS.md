@@ -102,3 +102,35 @@ fix: short message
 - GitHub Pages builds use `npm run build:pages`, which sets `base` to `/picme/`
   (matches the repo name). Local/dev builds serve from `/`.
 - Use HashRouter (or a `404.html` redirect) to avoid 404s on refresh in Pages.
+
+## Releases
+
+Releases follow the semantic-release style (grouped, generated from commits).
+
+1. Bump the version (updates `package.json` + `package-lock.json`, no tag):
+   `npm version <X.Y.Z> --no-git-tag-version`
+2. Commit: `chore: release v<X.Y.Z>` and push `main`.
+3. Collect commits since the previous tag:
+   `git log v<PREV>..HEAD --pretty=format:'%H|%s'`
+   Group by type: `feat:` → Features, `fix:` → Bug Fixes, `docs:` → Documentation,
+   `style:`/`chore:` → Styles/Chores.
+4. Create the release (creates the tag at `main`):
+   `gh release create v<X.Y.Z> --title "<X.Y.Z>" --notes-file <notes.md> --target main`
+
+Release notes format:
+
+```
+## [X.Y.Z](https://github.com/gabrielSantosLima/picme/releases/tag/vX.Y.Z) (YYYY-MM-DD)
+
+### Features
+- <message> ([<short>](https://github.com/gabrielSantosLima/picme/commit/<full>))
+
+### Bug Fixes
+- <message> ([<short>](https://github.com/gabrielSantosLima/picme/commit/<full>))
+
+### Contributors
+- [@gabrielSantosLima](https://github.com/gabrielSantosLima)
+```
+
+- Tag an existing commit only when re-targeting a release: `git tag -f v<X.Y.Z> <sha>`
+  then `git push -f origin v<X.Y.Z>`.
