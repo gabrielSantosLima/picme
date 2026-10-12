@@ -25,3 +25,38 @@ export type AgentEvent =
   | { type: 'tool_result'; name: string; result: unknown }
   | { type: 'message'; content: string }
   | { type: 'error'; error: string }
+
+export type AgentPhase = 'idle' | 'running' | 'awaiting_input' | 'done' | 'error'
+
+export interface QuestionSpec {
+  question: string
+  options?: string[]
+  multiple?: boolean
+}
+
+export interface WordCloudSpec {
+  title?: string
+  tags: string[]
+}
+
+export type PendingInteraction =
+  | { id: string; kind: 'questions'; questions: QuestionSpec[] }
+  | {
+      id: string
+      kind: 'word-cloud'
+      question: string
+      clouds: WordCloudSpec[]
+      multiple: boolean
+    }
+
+export interface QuestionAnswer {
+  question: string
+  selected: string[]
+}
+
+export interface DrawPayload {
+  frameId?: string
+  mode?: 'replace' | 'merge'
+  palette: string[]
+  pixels: string[]
+}
