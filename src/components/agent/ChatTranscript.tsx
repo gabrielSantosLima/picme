@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { LuChevronRight } from 'react-icons/lu'
+import { LuChevronDown, LuChevronRight } from 'react-icons/lu'
 import type { ArtVariant } from '../../entities/agent'
 import { useAgent } from '../../hooks/useAgent'
 import { useSpecPreviews } from '../../hooks/useSpecPreviews'
 import { useAgentStore, type AgentEntry } from '../../store/agentStore'
 
 const ASSISTANT_TEXT =
-  'max-w-[92%] self-start whitespace-pre-wrap break-words text-[14px] leading-relaxed text-neutral-300'
+  'max-w-[92%] self-start whitespace-pre-wrap break-words text-[16px] leading-relaxed text-neutral-300'
 
 type ReasoningEntry = Extract<AgentEntry, { kind: 'reasoning' }>
 type SkillEntry = Extract<AgentEntry, { kind: 'skill' }>
@@ -45,10 +45,10 @@ function groupEntries(entries: AgentEntry[]): ChatGroup[] {
 
 function rowClass(role: string): string {
   if (role === 'user') {
-    return 'max-w-[85%] self-end rounded-2xl rounded-br-md bg-sky-600 px-3.5 py-2 text-[14px] leading-relaxed text-white shadow-sm'
+    return 'max-w-[85%] self-end rounded-2xl rounded-br-md bg-sky-600 px-3.5 py-2 text-[16px] leading-relaxed text-white shadow-sm'
   }
   if (role === 'error') {
-    return 'max-w-[92%] self-start rounded-xl bg-red-500/10 px-3 py-2 text-[13px] leading-relaxed text-red-300'
+    return 'max-w-[92%] self-start rounded-xl bg-red-500/10 px-3 py-2 text-[14px] leading-relaxed text-red-300'
   }
   return ASSISTANT_TEXT
 }
@@ -128,7 +128,7 @@ function ReasoningRow({ entry }: { entry: ReasoningEntry }) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center gap-2 py-1 text-left text-[13px] leading-relaxed text-neutral-500 transition-colors hover:text-neutral-300 focus:outline-none focus-visible:text-neutral-200"
+        className="flex w-full items-center gap-2 py-1 text-left text-[14px] leading-relaxed text-neutral-500 transition-colors hover:text-neutral-300 focus:outline-none focus-visible:text-neutral-200"
         aria-expanded={open}
       >
         <LuChevronRight
@@ -144,12 +144,12 @@ function ReasoningRow({ entry }: { entry: ReasoningEntry }) {
           ].join(' ')}
         />
         <span>{label}</span>
-        <span className="ml-auto hidden text-[11px] normal-case tracking-normal text-neutral-600 group-hover/reasoning:inline">
+        <span className="ml-auto hidden text-[12px] normal-case tracking-normal text-neutral-600 group-hover/reasoning:inline">
           {open ? 'Collapse' : 'Expand'}
         </span>
       </button>
       {open && (
-        <pre className="mt-1 whitespace-pre-wrap break-words pl-5 font-sans text-[13px] leading-relaxed text-neutral-500/90">
+        <pre className="mt-1 whitespace-pre-wrap break-words pl-5 font-sans text-[14px] leading-relaxed text-neutral-500/90">
           {entry.content}
         </pre>
       )}
@@ -167,7 +167,7 @@ function ToolRow({ entry }: { entry: SkillEntry }) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-start gap-2 py-1 text-left text-[13px] leading-relaxed transition-colors hover:text-neutral-300 focus:outline-none focus-visible:text-neutral-200"
+        className="flex w-full items-start gap-2 py-1 text-left text-[14px] leading-relaxed transition-colors hover:text-neutral-300 focus:outline-none focus-visible:text-neutral-200"
         aria-expanded={open}
       >
         <LuChevronRight
@@ -183,12 +183,12 @@ function ToolRow({ entry }: { entry: SkillEntry }) {
         {entry.status === 'running' && (
           <span className="mt-1 h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-sky-400/80" />
         )}
-        <span className="ml-auto hidden shrink-0 text-[11px] normal-case tracking-normal text-neutral-600 group-hover/tool:inline">
+        <span className="ml-auto hidden shrink-0 text-[12px] normal-case tracking-normal text-neutral-600 group-hover/tool:inline">
           {open ? 'Collapse' : 'Expand'}
         </span>
       </button>
       {open && (
-        <div className="mt-1 pl-5 text-[12px] leading-relaxed text-neutral-500">
+        <div className="mt-1 pl-5 text-[13px] leading-relaxed text-neutral-500">
           {entry.args.length > 0 && (
             <pre className="whitespace-pre-wrap break-words text-neutral-500/80">
               {entry.args}
@@ -232,7 +232,7 @@ function ActivityGroup({ steps }: { steps: ActivityStep[] }) {
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
-          className="flex w-full items-center gap-2 text-left text-[13px] font-medium text-neutral-400 transition-colors hover:text-neutral-200 focus:outline-none focus-visible:text-neutral-100"
+          className="flex w-full items-center gap-2 text-left text-[14px] font-medium text-neutral-400 transition-colors hover:text-neutral-200 focus:outline-none focus-visible:text-neutral-100"
           aria-expanded={open}
         >
           <LuChevronRight
@@ -245,7 +245,7 @@ function ActivityGroup({ steps }: { steps: ActivityStep[] }) {
           {running && (
             <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-sky-400/80" />
           )}
-          <span className="ml-auto hidden text-[11px] normal-case tracking-normal text-neutral-600 group-hover/activity:inline">
+          <span className="ml-auto hidden text-[12px] normal-case tracking-normal text-neutral-600 group-hover/activity:inline">
             {open ? 'Collapse' : 'Expand'}
           </span>
         </button>
@@ -283,7 +283,7 @@ function VariantsEntry({ variants, selected }: { variants: ArtVariant[]; selecte
             className="w-full rounded"
             style={{ imageRendering: 'pixelated' }}
           />
-          <span className="mt-1 block text-center text-[11px] text-neutral-500">
+          <span className="mt-1 block text-center text-[12px] text-neutral-500">
             {variant.name ?? index + 1}
           </span>
         </div>
@@ -331,7 +331,7 @@ function renderEntry(entry: NonActivityEntry) {
     return (
       <div
         key={entry.id}
-        className="flex items-center gap-2 py-1 text-[12px] uppercase tracking-wide text-neutral-500"
+        className="flex items-center gap-2 py-1 text-[13px] uppercase tracking-wide text-neutral-500"
       >
         <span className="h-px flex-1 bg-neutral-800" />
         {entry.label}
@@ -355,6 +355,7 @@ export function ChatTranscript() {
   const { newConversation } = useAgent()
   const scrollRef = useRef<HTMLDivElement>(null)
   const stickToBottomRef = useRef(true)
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false)
 
   useEffect(() => {
     const element = scrollRef.current
@@ -366,7 +367,16 @@ export function ChatTranscript() {
     const element = scrollRef.current
     if (!element) return
     const distance = element.scrollHeight - element.scrollTop - element.clientHeight
-    stickToBottomRef.current = distance < 48
+    const nearBottom = distance < 48
+    stickToBottomRef.current = nearBottom
+    setShowJumpToLatest(!nearBottom)
+  }
+
+  const scrollToLatest = () => {
+    const element = scrollRef.current
+    if (!element) return
+    stickToBottomRef.current = true
+    element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' })
   }
 
   const groups = groupEntries(entries)
@@ -384,15 +394,15 @@ export function ChatTranscript() {
         : 'Working…'
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="chat-scroll flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto text-sm"
+        className="chat-scroll flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto text-[16px]"
       >
         <div className="flex flex-col gap-4 p-4">
           {entries.length === 0 && streamingText.length === 0 && !waiting && (
-            <p className="text-[13px] leading-relaxed text-neutral-500">
+            <p className="text-[14px] leading-relaxed text-neutral-500">
               Describe what you want to draw.
             </p>
           )}
@@ -415,7 +425,7 @@ export function ChatTranscript() {
             <button
               type="button"
               onClick={newConversation}
-              className="mx-auto mt-1 rounded-full border border-neutral-800 bg-neutral-900/60 px-4 py-1.5 text-[13px] text-neutral-400 transition-colors hover:border-neutral-700 hover:text-neutral-200 focus:outline-none"
+              className="mx-auto mt-1 rounded-full border border-neutral-800 bg-neutral-900/60 px-4 py-1.5 text-[14px] text-neutral-400 transition-colors hover:border-neutral-700 hover:text-neutral-200 focus:outline-none"
             >
               New conversation
             </button>
@@ -424,10 +434,25 @@ export function ChatTranscript() {
       </div>
 
       {running && (
-        <div className="flex shrink-0 items-center gap-2 border-t border-neutral-800 px-4 py-2 text-[12px] tracking-wide text-neutral-500">
+        <div className="flex shrink-0 items-center gap-2 border-t border-neutral-800 px-4 py-2 text-[13px] tracking-wide text-neutral-500">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-400/80" />
           {statusLabel}
         </div>
+      )}
+
+      {showJumpToLatest && (
+        <button
+          type="button"
+          onClick={scrollToLatest}
+          title="Scroll to latest"
+          aria-label="Scroll to latest"
+          className={[
+            'absolute right-3 z-30 flex h-8 w-8 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900/90 text-neutral-300 shadow-lg backdrop-blur transition-colors hover:border-neutral-600 hover:bg-neutral-800 hover:text-white focus:outline-none',
+            running ? 'bottom-14' : 'bottom-3',
+          ].join(' ')}
+        >
+          <LuChevronDown />
+        </button>
       )}
     </div>
   )

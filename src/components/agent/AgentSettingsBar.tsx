@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { LuChevronDown, LuSettings } from 'react-icons/lu'
-import { TbCpu } from 'react-icons/tb'
 import { useProvider } from '../../contexts/ProviderContext'
 import type { ReasoningEffort } from '../../entities/provider'
 import { ProviderSettingsDialog } from '../settings/ProviderSettingsDialog'
@@ -36,16 +35,12 @@ export function AgentSettingsBar() {
   }
 
   return (
-    <div className="flex items-center gap-3 border-t border-neutral-800 px-3 py-2">
-      <span className="shrink-0 text-base text-neutral-400">
-        <TbCpu />
-      </span>
-
+    <div className="flex min-w-0 flex-1 items-center gap-1.5">
       <div className="relative min-w-0 flex-1">
         <select
           value={settings.model}
           onChange={(event) => changeModel(event.target.value)}
-          className="w-full cursor-pointer appearance-none truncate bg-transparent pr-5 text-xs font-semibold text-neutral-200 focus:outline-none"
+          className="w-full cursor-pointer appearance-none truncate rounded-full border border-neutral-800 bg-neutral-900/70 py-1 pl-2.5 pr-6 text-[13px] font-medium text-neutral-300 transition-colors hover:border-neutral-700 focus:border-sky-500/60 focus:outline-none"
         >
           {modelOptions.length === 0 && (
             <option value="" className="bg-neutral-800 text-neutral-100">
@@ -58,14 +53,14 @@ export function AgentSettingsBar() {
             </option>
           ))}
         </select>
-        <LuChevronDown className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-neutral-500" />
+        <LuChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[13px] text-neutral-500" />
       </div>
 
       <div className="relative shrink-0">
         <select
           value={settings.reasoningEffort}
           onChange={(event) => changeReasoning(event.target.value as ReasoningEffort)}
-          className="cursor-pointer appearance-none bg-transparent pr-5 text-xs capitalize text-neutral-300 focus:outline-none"
+          className="cursor-pointer appearance-none rounded-full border border-neutral-800 bg-neutral-900/70 py-1 pl-2.5 pr-6 text-[13px] font-medium capitalize text-neutral-300 transition-colors hover:border-neutral-700 focus:border-sky-500/60 focus:outline-none"
         >
           {REASONING_LEVELS.map((level) => (
             <option key={level} value={level} className="bg-neutral-800 text-neutral-100">
@@ -73,7 +68,7 @@ export function AgentSettingsBar() {
             </option>
           ))}
         </select>
-        <LuChevronDown className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-neutral-500" />
+        <LuChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[13px] text-neutral-500" />
       </div>
 
       <TokenMeter />
@@ -82,7 +77,7 @@ export function AgentSettingsBar() {
         type="button"
         title="Provider settings"
         onClick={() => setSettingsOpen(true)}
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-neutral-400 hover:text-white focus:outline-none"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-white focus:outline-none"
       >
         <LuSettings />
       </button>

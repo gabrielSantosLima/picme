@@ -2,7 +2,6 @@ import { useProvider } from '../../contexts/ProviderContext'
 import { useAgent } from '../../hooks/useAgent'
 import { useAgentStore } from '../../store/agentStore'
 import { AgentInput } from './AgentInput'
-import { AgentSettingsBar } from './AgentSettingsBar'
 import { ChatTranscript } from './ChatTranscript'
 import { QuestionForm } from './QuestionForm'
 import { VariantPicker } from './VariantPicker'
@@ -44,7 +43,6 @@ export function AgentPanel() {
         </div>
       )}
 
-      <AgentSettingsBar />
       <AgentInput />
     </div>
   )
