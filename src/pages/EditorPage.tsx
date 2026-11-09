@@ -12,8 +12,12 @@ export function EditorPage() {
   const swapped = useLayoutStore((state) => state.swapped)
   const dockWidth = useLayoutStore((state) => state.dockWidth)
   const colorWidth = useLayoutStore((state) => state.colorWidth)
+  const dockCollapsed = useLayoutStore((state) => state.dockCollapsed)
+  const colorCollapsed = useLayoutStore((state) => state.colorCollapsed)
   const setDockWidth = useLayoutStore((state) => state.setDockWidth)
   const setColorWidth = useLayoutStore((state) => state.setColorWidth)
+  const toggleDockCollapsed = useLayoutStore((state) => state.toggleDockCollapsed)
+  const toggleColorCollapsed = useLayoutStore((state) => state.toggleColorCollapsed)
 
   const resizeDock = (delta: number) => {
     const current = useLayoutStore.getState().dockWidth
@@ -42,21 +46,49 @@ export function EditorPage() {
       <div className="flex min-h-0 flex-1">
         {swapped ? (
           <>
-            <SidePanel side="left" width={dockWidth} onResize={resizeDock}>
+            <SidePanel
+              side="left"
+              width={dockWidth}
+              title="Workspace"
+              collapsed={dockCollapsed}
+              onToggleCollapse={toggleDockCollapsed}
+              onResize={resizeDock}
+            >
               <RightDock />
             </SidePanel>
             {canvas}
-            <SidePanel side="right" width={colorWidth} onResize={resizeColor}>
+            <SidePanel
+              side="right"
+              width={colorWidth}
+              title="Colors"
+              collapsed={colorCollapsed}
+              onToggleCollapse={toggleColorCollapsed}
+              onResize={resizeColor}
+            >
               <ColorPalette />
             </SidePanel>
           </>
         ) : (
           <>
-            <SidePanel side="left" width={colorWidth} onResize={resizeColor}>
+            <SidePanel
+              side="left"
+              width={colorWidth}
+              title="Colors"
+              collapsed={colorCollapsed}
+              onToggleCollapse={toggleColorCollapsed}
+              onResize={resizeColor}
+            >
               <ColorPalette />
             </SidePanel>
             {canvas}
-            <SidePanel side="right" width={dockWidth} onResize={resizeDock}>
+            <SidePanel
+              side="right"
+              width={dockWidth}
+              title="Workspace"
+              collapsed={dockCollapsed}
+              onToggleCollapse={toggleDockCollapsed}
+              onResize={resizeDock}
+            >
               <RightDock />
             </SidePanel>
           </>

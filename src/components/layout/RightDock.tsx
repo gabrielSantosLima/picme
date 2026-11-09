@@ -6,7 +6,7 @@ import { LayersPanel } from '../layers/LayersPanel'
 
 function tabClass(active: boolean): string {
   return [
-    'flex-1 px-3 py-2 text-xs font-medium transition-colors focus:outline-none',
+    'flex-1 px-3 py-2.5 text-[13px] font-medium transition-colors focus:outline-none',
     active ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-white',
   ].join(' ')
 }
@@ -37,7 +37,7 @@ export function RightDock() {
           type="button"
           onClick={toggleSwap}
           title="Swap panel sides"
-          className="flex w-9 items-center justify-center text-neutral-400 hover:text-white focus:outline-none"
+          className="flex w-10 items-center justify-center text-neutral-400 hover:text-white focus:outline-none"
         >
           <LuArrowLeftRight />
         </button>
