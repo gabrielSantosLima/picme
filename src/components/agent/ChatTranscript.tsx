@@ -6,69 +6,223 @@ import { useSpecPreviews } from '../../hooks/useSpecPreviews'
 import { useAgentStore, type AgentEntry } from '../../store/agentStore'
 
 const ASSISTANT_TEXT =
-  'max-w-[92%] self-start whitespace-pre-wrap break-words text-[13px] leading-relaxed text-neutral-300'
+  'max-w-[92%] self-start whitespace-pre-wrap break-words text-[14px] leading-relaxed text-neutral-300'
+
+type ReasoningEntry = Extract<AgentEntry, { kind: 'reasoning' }>
+type SkillEntry = Extract<AgentEntry, { kind: 'skill' }>
+type ActivityStep = ReasoningEntry | SkillEntry
+type NonActivityEntry = Exclude<AgentEntry, ActivityStep>
+
+type ChatGroup =
+  | { kind: 'activity'; id: string; steps: ActivityStep[] }
+  | { kind: 'entry'; id: string; entry: NonActivityEntry }
+
+function isActivityStep(entry: AgentEntry): entry is ActivityStep {
+  return entry.kind === 'reasoning' || entry.kind === 'skill'
+}
+
+function groupEntries(entries: AgentEntry[]): ChatGroup[] {
+  const groups: ChatGroup[] = []
+  let steps: ActivityStep[] = []
+
+  const flush = () => {
+    if (steps.length === 0) return
+    groups.push({ kind: 'activity', id: steps[0].id, steps })
+    steps = []
+  }
+
+  for (const entry of entries) {
+    if (isActivityStep(entry)) {
+      steps.push(entry)
+    } else {
+      flush()
+      groups.push({ kind: 'entry', id: entry.id, entry })
+    }
+  }
+  flush()
+  return groups
+}
 
 function rowClass(role: string): string {
   if (role === 'user') {
-    return 'max-w-[85%] self-end rounded-2xl rounded-br-md bg-sky-600 px-3.5 py-2 text-[13px] leading-relaxed text-white shadow-sm'
+    return 'max-w-[85%] self-end rounded-2xl rounded-br-md bg-sky-600 px-3.5 py-2 text-[14px] leading-relaxed text-white shadow-sm'
   }
   if (role === 'error') {
-    return 'max-w-[92%] self-start rounded-xl bg-red-500/10 px-3 py-2 text-[12px] leading-relaxed text-red-300'
+    return 'max-w-[92%] self-start rounded-xl bg-red-500/10 px-3 py-2 text-[13px] leading-relaxed text-red-300'
   }
   return ASSISTANT_TEXT
 }
 
-function SkillTrace({
-  name,
-  status,
-  args,
-  result,
-}: {
-  name: string
-  status: 'running' | 'done'
-  args: string
-  result: string
-}) {
-  const detail = [
-    args.length > 0 ? `Args:\n${args}` : '',
-    result.length > 0 ? `Result:\n${result}` : '',
-  ]
-    .filter(Boolean)
-    .join('\n\n')
-
-  return (
-    <details className="group rounded border border-neutral-800 bg-neutral-900/60 text-xs">
-      <summary className="flex cursor-pointer items-center gap-1 px-2 py-1 text-neutral-400 hover:text-neutral-200">
-        <LuChevronRight className="transition-transform group-open:rotate-90" />
-        {status === 'running' ? `Executing skill ${name}…` : `Executed skill ${name}`}
-      </summary>
-      {detail.length > 0 && (
-        <pre className="whitespace-pre-wrap border-t border-neutral-800 px-2 py-1 text-[11px] text-neutral-400">
-          {detail}
-        </pre>
-      )}
-    </details>
-  )
+function parseArgs(raw: string): Record<string, unknown> {
+  if (!raw) return {}
+  try {
+    const value: unknown = JSON.parse(raw)
+    return value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
+  } catch {
+    return {}
+  }
 }
 
-function ReasoningEntry({
-  content,
-  streaming,
-  durationMs,
-}: {
-  content: string
-  streaming: boolean
-  durationMs?: number
-}) {
+function toolLabel(name: string): string {
+  switch (name) {
+    case 'read_frame':
+      return 'Read'
+    case 'draw':
+      return 'Draw'
+    case 'propose_variants':
+      return 'Variants'
+    case 'ask':
+      return 'Ask'
+    case 'show_word_cloud':
+      return 'Words'
+    default:
+      return name
+  }
+}
+
+function toolDetail(entry: SkillEntry): string {
+  const args = parseArgs(entry.args)
+  switch (entry.name) {
+    case 'read_frame': {
+      const frameId = args.frameId
+      return typeof frameId === 'string' ? `frame ${frameId.slice(0, 8)}` : 'active frame'
+    }
+    case 'draw': {
+      const spec = args.spec as { frames?: unknown[] } | undefined
+      const count = Array.isArray(spec?.frames) ? spec.frames.length : 1
+      const target = args.target as { mode?: unknown } | undefined
+      const mode = typeof target?.mode === 'string' ? target.mode : undefined
+      return `${count} ${count === 1 ? 'frame' : 'frames'}${mode ? ` · ${mode}` : ''}`
+    }
+    case 'propose_variants': {
+      const variants = args.variants
+      return Array.isArray(variants) ? `${variants.length} designs` : 'designs'
+    }
+    case 'ask': {
+      const questions = args.questions
+      return Array.isArray(questions)
+        ? `${questions.length} ${questions.length === 1 ? 'question' : 'questions'}`
+        : ''
+    }
+    case 'show_word_cloud': {
+      const clouds = args.clouds
+      return Array.isArray(clouds)
+        ? `${clouds.length} ${clouds.length === 1 ? 'word cloud' : 'word clouds'}`
+        : ''
+    }
+    default:
+      return ''
+  }
+}
+
+function ReasoningRow({ entry }: { entry: ReasoningEntry }) {
   const [open, setOpen] = useState(false)
-  const label = streaming
-    ? 'Thinking…'
-    : durationMs !== undefined
-      ? `Thought ${Math.round(durationMs / 1000)}s`
+  const label = entry.streaming
+    ? 'Thinking'
+    : entry.durationMs !== undefined
+      ? `Thought ${Math.round(entry.durationMs / 1000)}s`
       : 'Thought process'
 
   return (
-    <div className="group/reasoning w-full self-stretch">
+    <div className="group/reasoning">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center gap-2 py-1 text-left text-[13px] leading-relaxed text-neutral-500 transition-colors hover:text-neutral-300 focus:outline-none focus-visible:text-neutral-200"
+        aria-expanded={open}
+      >
+        <LuChevronRight
+          className={[
+            'shrink-0 text-neutral-600 transition-transform duration-200',
+            open ? 'rotate-90' : '',
+          ].join(' ')}
+        />
+        <span
+          className={[
+            'h-1 w-1 shrink-0 rounded-full',
+            entry.streaming ? 'animate-pulse bg-sky-400/80' : 'bg-neutral-700',
+          ].join(' ')}
+        />
+        <span>{label}</span>
+        <span className="ml-auto hidden text-[11px] normal-case tracking-normal text-neutral-600 group-hover/reasoning:inline">
+          {open ? 'Collapse' : 'Expand'}
+        </span>
+      </button>
+      {open && (
+        <pre className="mt-1 whitespace-pre-wrap break-words pl-5 font-sans text-[13px] leading-relaxed text-neutral-500/90">
+          {entry.content}
+        </pre>
+      )}
+    </div>
+  )
+}
+
+function ToolRow({ entry }: { entry: SkillEntry }) {
+  const [open, setOpen] = useState(false)
+  const label = toolLabel(entry.name)
+  const detail = toolDetail(entry)
+
+  return (
+    <div className="group/tool">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-start gap-2 py-1 text-left text-[13px] leading-relaxed transition-colors hover:text-neutral-300 focus:outline-none focus-visible:text-neutral-200"
+        aria-expanded={open}
+      >
+        <LuChevronRight
+          className={[
+            'mt-0.5 shrink-0 text-neutral-600 transition-transform duration-200',
+            open ? 'rotate-90' : '',
+          ].join(' ')}
+        />
+        <span className="shrink-0 font-semibold text-neutral-300">{label}</span>
+        {detail.length > 0 && (
+          <span className="min-w-0 flex-1 truncate text-neutral-500">{detail}</span>
+        )}
+        {entry.status === 'running' && (
+          <span className="mt-1 h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-sky-400/80" />
+        )}
+        <span className="ml-auto hidden shrink-0 text-[11px] normal-case tracking-normal text-neutral-600 group-hover/tool:inline">
+          {open ? 'Collapse' : 'Expand'}
+        </span>
+      </button>
+      {open && (
+        <div className="mt-1 pl-5 text-[12px] leading-relaxed text-neutral-500">
+          {entry.args.length > 0 && (
+            <pre className="whitespace-pre-wrap break-words text-neutral-500/80">
+              {entry.args}
+            </pre>
+          )}
+          {entry.result.length > 0 && (
+            <pre className="mt-1 whitespace-pre-wrap break-words text-neutral-500/80">
+              {entry.result}
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ActivityGroup({ steps }: { steps: ActivityStep[] }) {
+  const [open, setOpen] = useState(true)
+  const toolSteps = steps.filter((step): step is SkillEntry => step.kind === 'skill')
+  const counts = new Map<string, number>()
+  for (const step of toolSteps) {
+    const label = toolLabel(step.name)
+    counts.set(label, (counts.get(label) ?? 0) + 1)
+  }
+  const total = toolSteps.length
+  const only = counts.size === 1 ? [...counts.keys()][0] : null
+  const running = steps.some((step) =>
+    step.kind === 'reasoning' ? step.streaming : step.status === 'running',
+  )
+  const summary =
+    total === 0 ? 'Reasoning' : `Used ${total} ${only ?? 'tools'}`
+
+  return (
+    <div className="group/activity">
       <div
         className={[
           'sticky top-0 z-20 -mx-4 flex items-center px-4 py-1.5',
@@ -78,31 +232,34 @@ function ReasoningEntry({
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
-          className="flex min-w-0 items-center gap-2 rounded-md px-1 py-0.5 text-left text-[10px] font-medium uppercase tracking-[0.18em] text-neutral-600 transition-colors hover:text-neutral-400 focus:outline-none"
+          className="flex w-full items-center gap-2 text-left text-[13px] font-medium text-neutral-400 transition-colors hover:text-neutral-200 focus:outline-none focus-visible:text-neutral-100"
           aria-expanded={open}
         >
           <LuChevronRight
             className={[
-              'shrink-0 transition-transform duration-200',
+              'shrink-0 text-neutral-600 transition-transform duration-200',
               open ? 'rotate-90' : '',
             ].join(' ')}
           />
-          <span
-            className={[
-              'h-1 w-1 shrink-0 rounded-full',
-              streaming ? 'animate-pulse bg-sky-400/80' : 'bg-neutral-700',
-            ].join(' ')}
-          />
-          <span className="truncate">{label}</span>
-          <span className="ml-1 hidden text-[10px] normal-case tracking-normal text-neutral-600 group-hover/reasoning:inline">
+          <span>{summary}</span>
+          {running && (
+            <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-sky-400/80" />
+          )}
+          <span className="ml-auto hidden text-[11px] normal-case tracking-normal text-neutral-600 group-hover/activity:inline">
             {open ? 'Collapse' : 'Expand'}
           </span>
         </button>
       </div>
       {open && (
-        <pre className="max-w-[92%] whitespace-pre-wrap break-words font-sans text-[12px] leading-relaxed text-neutral-500/90">
-          {content}
-        </pre>
+        <div className="mt-1 space-y-2 border-l border-neutral-800 pl-3">
+          {steps.map((step) =>
+            step.kind === 'reasoning' ? (
+              <ReasoningRow key={step.id} entry={step} />
+            ) : (
+              <ToolRow key={step.id} entry={step} />
+            ),
+          )}
+        </div>
       )}
     </div>
   )
@@ -126,7 +283,7 @@ function VariantsEntry({ variants, selected }: { variants: ArtVariant[]; selecte
             className="w-full rounded"
             style={{ imageRendering: 'pixelated' }}
           />
-          <span className="mt-1 block text-center text-[10px] text-neutral-500">
+          <span className="mt-1 block text-center text-[11px] text-neutral-500">
             {variant.name ?? index + 1}
           </span>
         </div>
@@ -154,7 +311,7 @@ function renderWithLinks(text: string) {
   )
 }
 
-function renderEntry(entry: AgentEntry) {
+function renderEntry(entry: NonActivityEntry) {
   if (entry.kind === 'message') {
     if (entry.role === 'error') {
       return (
@@ -174,7 +331,7 @@ function renderEntry(entry: AgentEntry) {
     return (
       <div
         key={entry.id}
-        className="flex items-center gap-2 py-1 text-[11px] uppercase tracking-wide text-neutral-500"
+        className="flex items-center gap-2 py-1 text-[12px] uppercase tracking-wide text-neutral-500"
       >
         <span className="h-px flex-1 bg-neutral-800" />
         {entry.label}
@@ -183,30 +340,11 @@ function renderEntry(entry: AgentEntry) {
     )
   }
 
-  if (entry.kind === 'reasoning') {
-    return (
-      <ReasoningEntry
-        key={entry.id}
-        content={entry.content}
-        streaming={entry.streaming}
-        durationMs={entry.durationMs}
-      />
-    )
-  }
-
   if (entry.kind === 'variants') {
     return <VariantsEntry key={entry.id} variants={entry.variants} selected={entry.selected} />
   }
 
-  return (
-    <SkillTrace
-      key={entry.id}
-      name={entry.name}
-      status={entry.status}
-      args={entry.args}
-      result={entry.result}
-    />
-  )
+  return null
 }
 
 export function ChatTranscript() {
@@ -231,47 +369,66 @@ export function ChatTranscript() {
     stickToBottomRef.current = distance < 48
   }
 
+  const groups = groupEntries(entries)
   const hasStreamingReasoning = entries.some(
     (entry) => entry.kind === 'reasoning' && entry.streaming,
   )
-  const busy = phase === 'running' && streamingText.length === 0 && !hasStreamingReasoning
+  const running = phase === 'running'
+  const waiting = running && entries.length === 0 && streamingText.length === 0
+  const statusLabel = preparing
+    ? `Preparing ${preparing}…`
+    : hasStreamingReasoning
+      ? 'Thinking…'
+      : streamingText.length > 0
+        ? 'Writing…'
+        : 'Working…'
 
   return (
-    <div
-      ref={scrollRef}
-      onScroll={handleScroll}
-      className="chat-scroll flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto text-sm"
-    >
-      <div className="flex flex-col gap-4 p-4">
-        {entries.length === 0 && streamingText.length === 0 && !busy && (
-          <p className="text-xs leading-relaxed text-neutral-500">Describe what you want to draw.</p>
-        )}
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="chat-scroll flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto text-sm"
+      >
+        <div className="flex flex-col gap-4 p-4">
+          {entries.length === 0 && streamingText.length === 0 && !waiting && (
+            <p className="text-[13px] leading-relaxed text-neutral-500">
+              Describe what you want to draw.
+            </p>
+          )}
 
-        {entries.map(renderEntry)}
+          {groups.map((group) =>
+            group.kind === 'activity' ? (
+              <ActivityGroup key={group.id} steps={group.steps} />
+            ) : (
+              renderEntry(group.entry)
+            ),
+          )}
 
-        {streamingText.length > 0 && (
-          <div className={ASSISTANT_TEXT}>
-            <span className="whitespace-pre-wrap">{streamingText}</span>
-          </div>
-        )}
+          {streamingText.length > 0 && (
+            <div className={ASSISTANT_TEXT}>
+              <span className="whitespace-pre-wrap">{streamingText}</span>
+            </div>
+          )}
 
-        {busy && (
-          <div className="flex items-center gap-2 text-[11px] tracking-wide text-neutral-500">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-400/80" />
-            {preparing ? `Preparing ${preparing}…` : 'Thinking'}
-          </div>
-        )}
-
-        {phase === 'done' && (
-          <button
-            type="button"
-            onClick={newConversation}
-            className="mx-auto mt-1 rounded-full border border-neutral-800 bg-neutral-900/60 px-4 py-1.5 text-[12px] text-neutral-400 transition-colors hover:border-neutral-700 hover:text-neutral-200 focus:outline-none"
-          >
-            New conversation
-          </button>
-        )}
+          {phase === 'done' && (
+            <button
+              type="button"
+              onClick={newConversation}
+              className="mx-auto mt-1 rounded-full border border-neutral-800 bg-neutral-900/60 px-4 py-1.5 text-[13px] text-neutral-400 transition-colors hover:border-neutral-700 hover:text-neutral-200 focus:outline-none"
+            >
+              New conversation
+            </button>
+          )}
+        </div>
       </div>
+
+      {running && (
+        <div className="flex shrink-0 items-center gap-2 border-t border-neutral-800 px-4 py-2 text-[12px] tracking-wide text-neutral-500">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-400/80" />
+          {statusLabel}
+        </div>
+      )}
     </div>
   )
 }
