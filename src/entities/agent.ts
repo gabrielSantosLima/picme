@@ -23,6 +23,7 @@ export interface AgentSkill {
 
 export type AgentEvent =
   | { type: 'text'; text: string }
+  | { type: 'reasoning'; text: string }
   | { type: 'tool_preparing'; name: string }
   | { type: 'tool_call'; name: string; args: unknown }
   | { type: 'tool_result'; name: string; result: unknown }

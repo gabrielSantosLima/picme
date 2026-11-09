@@ -57,7 +57,13 @@ interface AnthropicStreamEvent {
   index?: number
   message?: { usage?: { input_tokens?: number } }
   content_block?: { type?: string; id?: string; name?: string }
-  delta?: { type?: string; text?: string; partial_json?: string; stop_reason?: string }
+  delta?: {
+    type?: string
+    text?: string
+    thinking?: string
+    partial_json?: string
+    stop_reason?: string
+  }
   usage?: { output_tokens?: number }
   error?: { message?: string }
 }
@@ -222,7 +228,9 @@ export class AnthropicProvider implements LLMProvider {
         }
       } else if (event.type === 'content_block_delta') {
         const delta = event.delta
-        if (delta?.type === 'text_delta' && delta.text) {
+        if (delta?.type === 'thinking_delta' && delta.thinking) {
+          yield { type: 'reasoning', text: delta.thinking }
+        } else if (delta?.type === 'text_delta' && delta.text) {
           yield { type: 'text', text: delta.text }
         } else if (delta?.type === 'input_json_delta' && delta.partial_json) {
           yield { type: 'tool_call_delta', index: event.index ?? 0, argsDelta: delta.partial_json }

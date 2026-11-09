@@ -35,6 +35,9 @@ interface StreamToolCallDelta {
 
 interface StreamDelta {
   content?: string | null
+  reasoning_content?: string | null
+  reasoning?: string | null
+  thinking?: string | null
   tool_calls?: StreamToolCallDelta[]
 }
 
@@ -130,6 +133,11 @@ export class OpenAiCompatibleProvider implements LLMProvider {
         }
       }
       if (!choice) continue
+      const reasoning =
+        choice.delta?.reasoning_content ?? choice.delta?.reasoning ?? choice.delta?.thinking
+      if (typeof reasoning === 'string' && reasoning.length > 0) {
+        yield { type: 'reasoning', text: reasoning }
+      }
       if (choice.delta?.content) yield { type: 'text', text: choice.delta.content }
       if (choice.delta?.tool_calls) {
         for (const call of choice.delta.tool_calls) {

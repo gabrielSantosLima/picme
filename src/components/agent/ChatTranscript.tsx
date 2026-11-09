@@ -44,6 +44,36 @@ function SkillTrace({
   )
 }
 
+function ReasoningEntry({ content, streaming }: { content: string; streaming: boolean }) {
+  const contentRef = useRef<HTMLPreElement>(null)
+
+  useEffect(() => {
+    if (!streaming) return
+    const element = contentRef.current
+    if (element) element.scrollTop = element.scrollHeight
+  }, [content, streaming])
+
+  return (
+    <div className="max-w-[92%] self-start rounded border border-neutral-800 bg-neutral-900/60 px-2 py-1.5 text-xs text-neutral-400">
+      <div className="mb-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-neutral-500">
+        <span
+          className={[
+            'h-1.5 w-1.5 rounded-full',
+            streaming ? 'animate-pulse bg-sky-400' : 'bg-neutral-600',
+          ].join(' ')}
+        />
+        {streaming ? 'Thinking…' : 'Thought process'}
+      </div>
+      <pre
+        ref={contentRef}
+        className="max-h-56 overflow-auto whitespace-pre-wrap break-words font-sans text-[11px] leading-relaxed text-neutral-400"
+      >
+        {content}
+      </pre>
+    </div>
+  )
+}
+
 function VariantsEntry({ variants, selected }: { variants: ArtVariant[]; selected?: number }) {
   const images = useSpecPreviews(variants)
   return (
@@ -122,6 +152,10 @@ function renderEntry(entry: AgentEntry) {
     )
   }
 
+  if (entry.kind === 'reasoning') {
+    return <ReasoningEntry key={entry.id} content={entry.content} streaming={entry.streaming} />
+  }
+
   if (entry.kind === 'variants') {
     return <VariantsEntry key={entry.id} variants={entry.variants} selected={entry.selected} />
   }
@@ -150,7 +184,10 @@ export function ChatTranscript() {
     if (element) element.scrollTop = element.scrollHeight
   }, [entries, streamingText, phase, preparing])
 
-  const busy = phase === 'running' && streamingText.length === 0
+  const hasStreamingReasoning = entries.some(
+    (entry) => entry.kind === 'reasoning' && entry.streaming,
+  )
+  const busy = phase === 'running' && streamingText.length === 0 && !hasStreamingReasoning
 
   return (
     <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 text-sm">

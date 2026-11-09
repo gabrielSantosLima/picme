@@ -260,6 +260,8 @@ does not use the palette-index codec from the old pipeline.
 - Right dock with `Layers | Agent` tabs.
 - Conversation transcript, interactive area (questions, word clouds, variants)
   and prompt input with Run/Stop.
+- Provider reasoning/thinking deltas stream into the transcript in a live muted
+  block, auto-scrolling while the model is thinking.
 - Skill traces show tool arguments and results, including spec errors and metrics.
 
 ### 8.4 Agent drawing pipeline
@@ -647,6 +649,9 @@ The system prompt must transplant the external skill's rules in compact form.
   - the tool result still contains the rendered ASCII and metrics, so the model
     keeps a faithful view of the result.
 - Tool results always include `ok`, frame ids, metrics, warnings and ASCII.
+- Reasoning deltas (`reasoning_content`, `reasoning`, `thinking`) are forwarded
+  as agent events and rendered live; they are not added to the chat history sent
+  back to the provider.
 - Dry runs (`apply: false`) do not touch the document.
 - The `InteractionBroker` continues to power `ask`, word clouds and variants.
 

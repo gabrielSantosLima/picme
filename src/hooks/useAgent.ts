@@ -123,6 +123,15 @@ export function useAgent() {
     let stepChars = 0
     let stepTokens = 0
     let hasUsage = false
+    let reasoningBuffer = ''
+    let reasoningEntryId: string | null = null
+
+    const finishReasoning = () => {
+      if (!reasoningEntryId) return
+      store().updateEntry(reasoningEntryId, { content: reasoningBuffer, streaming: false })
+      reasoningEntryId = null
+      reasoningBuffer = ''
+    }
 
     const flushStepTokens = () => {
       const value = hasUsage ? stepTokens : Math.ceil(stepChars / 4)
@@ -134,7 +143,14 @@ export function useAgent() {
 
     try {
       for await (const event of runner.run(history, { emit: () => undefined }, controller.signal)) {
-        if (event.type === 'text') {
+        if (event.type === 'reasoning') {
+          if (!reasoningEntryId) {
+            reasoningEntryId = store().addEntry({ kind: 'reasoning', content: '', streaming: true })
+          }
+          reasoningBuffer += event.text
+          store().updateEntry(reasoningEntryId, { content: reasoningBuffer, streaming: true })
+        } else if (event.type === 'text') {
+          finishReasoning()
           buffer += event.text
           stepChars += event.text.length
           store().setStreaming(buffer)
@@ -142,8 +158,10 @@ export function useAgent() {
           hasUsage = true
           stepTokens = event.totalTokens
         } else if (event.type === 'tool_preparing') {
+          finishReasoning()
           store().setPreparing(event.name)
         } else if (event.type === 'tool_call') {
+          finishReasoning()
           flushStepTokens()
           store().setPreparing(null)
           const reasoning = buffer.trim()
@@ -183,6 +201,7 @@ export function useAgent() {
             lastVariantsEntryId = null
           }
         } else if (event.type === 'message') {
+          finishReasoning()
           flushStepTokens()
           store().setPreparing(null)
           const content = buffer.trim() || event.content.trim()
@@ -194,6 +213,7 @@ export function useAgent() {
           store().setStreaming('')
           store().setPhase('done')
         } else if (event.type === 'error') {
+          finishReasoning()
           flushStepTokens()
           store().setPreparing(null)
           store().addEntry({ kind: 'message', role: 'error', content: event.error })
@@ -210,6 +230,7 @@ export function useAgent() {
       })
       store().setPhase('error')
     } finally {
+      finishReasoning()
       currentAbort = null
       const phase = store().phase
       if (phase === 'running' || phase === 'awaiting_input') store().setPhase('done')

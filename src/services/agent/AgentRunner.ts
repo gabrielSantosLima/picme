@@ -117,6 +117,8 @@ export class AgentRunner {
           if (chunk.type === 'text') {
             textParts.push(chunk.text)
             yield { type: 'text', text: chunk.text }
+          } else if (chunk.type === 'reasoning') {
+            yield { type: 'reasoning', text: chunk.text }
           } else if (chunk.type === 'tool_call_delta') {
             const entry = partial.get(chunk.index) ?? { id: '', name: '', args: '' }
             if (chunk.id) entry.id = chunk.id

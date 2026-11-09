@@ -38,6 +38,7 @@ export interface ChatRequest {
 
 export type ChatChunk =
   | { type: 'text'; text: string }
+  | { type: 'reasoning'; text: string }
   | {
       type: 'tool_call_delta'
       index: number
