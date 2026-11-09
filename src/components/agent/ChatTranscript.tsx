@@ -434,9 +434,14 @@ export function ChatTranscript() {
       </div>
 
       {running && (
-        <div className="flex shrink-0 items-center gap-2 border-t border-neutral-800 px-4 py-2 text-[13px] tracking-wide text-neutral-500">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-400/80" />
-          {statusLabel}
+        <div className="flex shrink-0 items-center gap-2 border-t border-neutral-800 px-4 py-2 text-[13px] tracking-wide">
+          <span className="relative flex h-1.5 w-1.5 shrink-0">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400/40" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-sky-400" />
+          </span>
+          <span className="status-pulse" aria-live="polite">
+            {statusLabel}
+          </span>
         </div>
       )}
 

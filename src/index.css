@@ -41,3 +41,27 @@
 .chat-scroll::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+.status-pulse {
+  display: inline-block;
+  color: #a3a3a3;
+  animation: status-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-pulse {
+    animation: none;
+    opacity: 1;
+  }
+}
