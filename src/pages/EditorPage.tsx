@@ -5,7 +5,11 @@ import { Timeline } from '../components/frames/Timeline'
 import { RightDock } from '../components/layout/RightDock'
 import { SidePanel } from '../components/layout/SidePanel'
 import { useEditorShortcuts } from '../hooks/useEditorShortcuts'
-import { useLayoutStore } from '../store/layoutStore'
+import { COLOR_MIN, DOCK_MIN, useLayoutStore } from '../store/layoutStore'
+
+const MIN_CANVAS_WIDTH = 200
+const PANEL_RAIL_WIDTH = 40
+const RESIZE_HANDLE_WIDTH = 10
 
 export function EditorPage() {
   useEditorShortcuts()
@@ -20,12 +24,28 @@ export function EditorPage() {
   const toggleColorCollapsed = useLayoutStore((state) => state.toggleColorCollapsed)
 
   const resizeDock = (delta: number) => {
-    const current = useLayoutStore.getState().dockWidth
-    setDockWidth(current + (swapped ? delta : -delta))
+    const state = useLayoutStore.getState()
+    const otherWidth = state.colorCollapsed
+      ? PANEL_RAIL_WIDTH
+      : state.colorWidth + RESIZE_HANDLE_WIDTH
+    const max = Math.max(
+      DOCK_MIN,
+      window.innerWidth - otherWidth - RESIZE_HANDLE_WIDTH - MIN_CANVAS_WIDTH,
+    )
+    const next = state.dockWidth + (state.swapped ? delta : -delta)
+    setDockWidth(Math.min(next, max))
   }
   const resizeColor = (delta: number) => {
-    const current = useLayoutStore.getState().colorWidth
-    setColorWidth(current + (swapped ? -delta : delta))
+    const state = useLayoutStore.getState()
+    const otherWidth = state.dockCollapsed
+      ? PANEL_RAIL_WIDTH
+      : state.dockWidth + RESIZE_HANDLE_WIDTH
+    const max = Math.max(
+      COLOR_MIN,
+      window.innerWidth - otherWidth - RESIZE_HANDLE_WIDTH - MIN_CANVAS_WIDTH,
+    )
+    const next = state.colorWidth + (state.swapped ? -delta : delta)
+    setColorWidth(Math.min(next, max))
   }
 
   const canvas = (

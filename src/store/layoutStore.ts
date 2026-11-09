@@ -2,14 +2,13 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 export const DOCK_MIN = 220
-export const DOCK_MAX = 720
 export const COLOR_MIN = 180
-export const COLOR_MAX = 420
 
 export type DockSide = 'left' | 'right'
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, Math.round(value)))
+function clamp(value: number, min: number): number {
+  if (!Number.isFinite(value)) return min
+  return Math.max(min, Math.round(value))
 }
 
 interface LayoutState {
@@ -33,8 +32,8 @@ export const useLayoutStore = create<LayoutState>()(
       colorWidth: 224,
       dockCollapsed: false,
       colorCollapsed: false,
-      setDockWidth: (width) => set({ dockWidth: clamp(width, DOCK_MIN, DOCK_MAX) }),
-      setColorWidth: (width) => set({ colorWidth: clamp(width, COLOR_MIN, COLOR_MAX) }),
+      setDockWidth: (width) => set({ dockWidth: clamp(width, DOCK_MIN) }),
+      setColorWidth: (width) => set({ colorWidth: clamp(width, COLOR_MIN) }),
       toggleSwap: () => set((state) => ({ swapped: !state.swapped })),
       toggleDockCollapsed: () => set((state) => ({ dockCollapsed: !state.dockCollapsed })),
       toggleColorCollapsed: () => set((state) => ({ colorCollapsed: !state.colorCollapsed })),
