@@ -4,14 +4,27 @@ import type { AgentPhase, ArtVariant, PendingInteraction } from '../entities/age
 export type AgentEntry =
   | { id: string; kind: 'message'; role: 'user' | 'assistant' | 'error'; content: string }
   | { id: string; kind: 'divider'; label: string }
-  | { id: string; kind: 'reasoning'; content: string; streaming: boolean }
+  | {
+      id: string
+      kind: 'reasoning'
+      content: string
+      streaming: boolean
+      startedAt: number
+      durationMs?: number
+    }
   | { id: string; kind: 'variants'; variants: ArtVariant[]; selected?: number }
   | { id: string; kind: 'skill'; name: string; status: 'running' | 'done'; args: string; result: string }
 
 export type AgentEntryInput =
   | { kind: 'message'; role: 'user' | 'assistant' | 'error'; content: string }
   | { kind: 'divider'; label: string }
-  | { kind: 'reasoning'; content: string; streaming: boolean }
+  | {
+      kind: 'reasoning'
+      content: string
+      streaming: boolean
+      startedAt: number
+      durationMs?: number
+    }
   | { kind: 'variants'; variants: ArtVariant[]; selected?: number }
   | { kind: 'skill'; name: string; status: 'running' | 'done'; args: string; result: string }
 

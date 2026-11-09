@@ -124,12 +124,18 @@ export function useAgent() {
     let hasUsage = false
     let reasoningBuffer = ''
     let reasoningEntryId: string | null = null
+    let reasoningStartedAt = 0
 
     const finishReasoning = () => {
       if (!reasoningEntryId) return
-      store().updateEntry(reasoningEntryId, { content: reasoningBuffer, streaming: false })
+      store().updateEntry(reasoningEntryId, {
+        content: reasoningBuffer,
+        streaming: false,
+        durationMs: reasoningStartedAt > 0 ? Date.now() - reasoningStartedAt : undefined,
+      })
       reasoningEntryId = null
       reasoningBuffer = ''
+      reasoningStartedAt = 0
     }
 
     const flushStepTokens = () => {
@@ -144,7 +150,13 @@ export function useAgent() {
       for await (const event of runner.run(history, { emit: () => undefined }, controller.signal)) {
         if (event.type === 'reasoning') {
           if (!reasoningEntryId) {
-            reasoningEntryId = store().addEntry({ kind: 'reasoning', content: '', streaming: true })
+            reasoningStartedAt = Date.now()
+            reasoningEntryId = store().addEntry({
+              kind: 'reasoning',
+              content: '',
+              streaming: true,
+              startedAt: reasoningStartedAt,
+            })
           }
           reasoningBuffer += event.text
           store().updateEntry(reasoningEntryId, { content: reasoningBuffer, streaming: true })

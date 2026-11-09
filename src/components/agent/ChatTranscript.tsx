@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
 import type { ArtVariant } from '../../entities/agent'
 import { useAgent } from '../../hooks/useAgent'
@@ -43,7 +43,7 @@ function SkillTrace({
         {status === 'running' ? `Executing skill ${name}…` : `Executed skill ${name}`}
       </summary>
       {detail.length > 0 && (
-        <pre className="max-h-60 overflow-auto whitespace-pre-wrap border-t border-neutral-800 px-2 py-1 text-[11px] text-neutral-400">
+        <pre className="whitespace-pre-wrap border-t border-neutral-800 px-2 py-1 text-[11px] text-neutral-400">
           {detail}
         </pre>
       )}
@@ -51,32 +51,59 @@ function SkillTrace({
   )
 }
 
-function ReasoningEntry({ content, streaming }: { content: string; streaming: boolean }) {
-  const contentRef = useRef<HTMLPreElement>(null)
-
-  useEffect(() => {
-    if (!streaming) return
-    const element = contentRef.current
-    if (element) element.scrollTop = element.scrollHeight
-  }, [content, streaming])
+function ReasoningEntry({
+  content,
+  streaming,
+  durationMs,
+}: {
+  content: string
+  streaming: boolean
+  durationMs?: number
+}) {
+  const [open, setOpen] = useState(false)
+  const label = streaming
+    ? 'Thinking…'
+    : durationMs !== undefined
+      ? `Thought ${Math.round(durationMs / 1000)}s`
+      : 'Thought process'
 
   return (
-    <div className="max-w-[92%] self-start">
-      <div className="mb-1.5 flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.18em] text-neutral-600">
-        <span
-          className={[
-            'h-1 w-1 rounded-full',
-            streaming ? 'animate-pulse bg-sky-400/80' : 'bg-neutral-700',
-          ].join(' ')}
-        />
-        {streaming ? 'Thinking' : 'Thought process'}
-      </div>
-      <pre
-        ref={contentRef}
-        className="max-h-56 overflow-auto whitespace-pre-wrap break-words font-sans text-[12px] leading-relaxed text-neutral-500/90"
+    <div className="group/reasoning max-w-[92%] self-start">
+      <div
+        className={[
+          'sticky top-0 z-10 flex items-center py-1',
+          open ? 'bg-neutral-900/90 backdrop-blur-sm' : '',
+        ].join(' ')}
       >
-        {content}
-      </pre>
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          className="flex min-w-0 items-center gap-2 rounded-md px-1 py-0.5 text-left text-[10px] font-medium uppercase tracking-[0.18em] text-neutral-600 transition-colors hover:text-neutral-400 focus:outline-none"
+          aria-expanded={open}
+        >
+          <LuChevronRight
+            className={[
+              'shrink-0 transition-transform duration-200',
+              open ? 'rotate-90' : '',
+            ].join(' ')}
+          />
+          <span
+            className={[
+              'h-1 w-1 shrink-0 rounded-full',
+              streaming ? 'animate-pulse bg-sky-400/80' : 'bg-neutral-700',
+            ].join(' ')}
+          />
+          <span className="truncate">{label}</span>
+          <span className="ml-1 hidden text-[10px] normal-case tracking-normal text-neutral-600 group-hover/reasoning:inline">
+            {open ? 'Collapse' : 'Expand'}
+          </span>
+        </button>
+      </div>
+      {open && (
+        <pre className="whitespace-pre-wrap break-words font-sans text-[12px] leading-relaxed text-neutral-500/90">
+          {content}
+        </pre>
+      )}
     </div>
   )
 }
@@ -157,7 +184,14 @@ function renderEntry(entry: AgentEntry) {
   }
 
   if (entry.kind === 'reasoning') {
-    return <ReasoningEntry key={entry.id} content={entry.content} streaming={entry.streaming} />
+    return (
+      <ReasoningEntry
+        key={entry.id}
+        content={entry.content}
+        streaming={entry.streaming}
+        durationMs={entry.durationMs}
+      />
+    )
   }
 
   if (entry.kind === 'variants') {
@@ -182,11 +216,20 @@ export function ChatTranscript() {
   const preparing = useAgentStore((state) => state.preparing)
   const { newConversation } = useAgent()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const stickToBottomRef = useRef(true)
 
   useEffect(() => {
     const element = scrollRef.current
-    if (element) element.scrollTop = element.scrollHeight
+    if (!element || !stickToBottomRef.current) return
+    element.scrollTop = element.scrollHeight
   }, [entries, streamingText, phase, preparing])
+
+  const handleScroll = () => {
+    const element = scrollRef.current
+    if (!element) return
+    const distance = element.scrollHeight - element.scrollTop - element.clientHeight
+    stickToBottomRef.current = distance < 48
+  }
 
   const hasStreamingReasoning = entries.some(
     (entry) => entry.kind === 'reasoning' && entry.streaming,
@@ -194,7 +237,11 @@ export function ChatTranscript() {
   const busy = phase === 'running' && streamingText.length === 0 && !hasStreamingReasoning
 
   return (
-    <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 text-sm">
+    <div
+      ref={scrollRef}
+      onScroll={handleScroll}
+      className="chat-scroll flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 text-sm"
+    >
       {entries.length === 0 && streamingText.length === 0 && !busy && (
         <p className="text-xs leading-relaxed text-neutral-500">Describe what you want to draw.</p>
       )}
