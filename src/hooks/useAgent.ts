@@ -5,7 +5,7 @@ import { InteractionBroker } from '../services/agent/InteractionBroker'
 import { AgentRunner } from '../services/agent/AgentRunner'
 import { createProvider } from '../services/llm/createProvider'
 import { frameToDataUrl } from '../services/canvas/frameToDataUrl'
-import type { ChatMessage } from '../services/llm/types'
+import type { ChatMessage, ChatRequest } from '../services/llm/types'
 import { useAgentStore } from '../store/agentStore'
 import { useDocumentStore } from '../store/documentStore'
 import { buildAgentConfig } from '../useCases/agent/agentConfig'
@@ -14,6 +14,14 @@ let broker: InteractionBroker | null = null
 let currentAbort: AbortController | null = null
 let conversation: ChatMessage[] = []
 let lastVariantsEntryId: string | null = null
+
+const COMPACT_PROMPT = `You compact a coding session with a pixel-art editor agent.
+Summarize the conversation into a concise context that preserves:
+- the user's goals and preferences;
+- design decisions and constraints;
+- the current canvas/frame state that was discussed;
+- pending requests and what was already done.
+Do not call tools. Return only the summary, in plain text.`
 
 function toVariants(
   args: unknown,
@@ -85,13 +93,15 @@ export function useAgent() {
     if (active) store.addEntry({ kind: 'divider', label: 'Execution interrupted' })
   }
 
-  const run = async (prompt: string) => {
+  const run = async (prompt: string, options?: { recordUser?: boolean }) => {
     if (!configured || !settings) return
     const store = () => useAgentStore.getState()
     store().setStreaming('')
     store().setPreparing(null)
     store().setPhase('running')
-    store().addEntry({ kind: 'message', role: 'user', content: prompt })
+    if (options?.recordUser !== false) {
+      store().addEntry({ kind: 'message', role: 'user', content: prompt })
+    }
     conversation.push({ role: 'user', content: prompt })
 
     const config = buildAgentConfig({
@@ -248,10 +258,84 @@ export function useAgent() {
     }
   }
 
+  const compact = async () => {
+    if (!configured || !settings) return
+    const store = () => useAgentStore.getState()
+    const lastUser = [...conversation].reverse().find((message) => message.role === 'user')
+    if (!lastUser) {
+      store().addEntry({
+        kind: 'message',
+        role: 'error',
+        content: 'There is no previous user message to resend.',
+      })
+      store().setPhase('error')
+      return
+    }
+
+    store().setStreaming('')
+    store().setPreparing(null)
+    store().setPhase('running')
+
+    const controller = new AbortController()
+    currentAbort = controller
+    const provider = createProvider(settings)
+    let summary = ''
+    let usageTokens = 0
+    let hasUsage = false
+
+    try {
+      const request: ChatRequest = {
+        messages: [
+          { role: 'system', content: COMPACT_PROMPT },
+          ...conversation,
+          { role: 'user', content: 'Write the compacted session summary now.' },
+        ],
+      }
+
+      for await (const chunk of provider.streamChat(request, controller.signal)) {
+        if (chunk.type === 'text') {
+          summary += chunk.text
+        } else if (chunk.type === 'usage') {
+          hasUsage = true
+          usageTokens = chunk.totalTokens
+        }
+      }
+
+      if (controller.signal.aborted) return
+      const text = summary.trim()
+      if (!text) {
+        store().addEntry({
+          kind: 'message',
+          role: 'error',
+          content: 'The model returned an empty session summary.',
+        })
+        store().setPhase('error')
+        return
+      }
+
+      if (hasUsage && usageTokens > 0) store().addTokens(usageTokens)
+      else store().addTokens(Math.ceil(text.length / 4))
+
+      conversation = [{ role: 'assistant', content: `Compacted session summary:\n${text}` }]
+      store().addEntry({ kind: 'divider', label: 'Session compacted · resending last prompt' })
+      await run(lastUser.content ?? '', { recordUser: false })
+    } catch (error) {
+      if (controller.signal.aborted) return
+      store().addEntry({
+        kind: 'message',
+        role: 'error',
+        content: error instanceof Error ? error.message : 'Session compaction failed',
+      })
+      store().setPhase('error')
+    } finally {
+      if (currentAbort === controller) currentAbort = null
+    }
+  }
+
   const newConversation = () => {
     conversation = []
     useAgentStore.getState().resetRun()
   }
 
-  return { run, submit, stop, newConversation }
+  return { run, submit, stop, compact, newConversation }
 }
