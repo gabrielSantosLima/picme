@@ -68,11 +68,11 @@ function ReasoningEntry({
       : 'Thought process'
 
   return (
-    <div className="group/reasoning max-w-[92%] self-start">
+    <div className="group/reasoning w-full self-stretch">
       <div
         className={[
-          'sticky top-0 z-10 flex items-center py-1',
-          open ? 'bg-neutral-900/90 backdrop-blur-sm' : '',
+          'sticky top-0 z-20 -mx-4 flex items-center px-4 py-1.5',
+          open ? 'border-b border-neutral-800/60 bg-neutral-900' : '',
         ].join(' ')}
       >
         <button
@@ -100,7 +100,7 @@ function ReasoningEntry({
         </button>
       </div>
       {open && (
-        <pre className="whitespace-pre-wrap break-words font-sans text-[12px] leading-relaxed text-neutral-500/90">
+        <pre className="max-w-[92%] whitespace-pre-wrap break-words font-sans text-[12px] leading-relaxed text-neutral-500/90">
           {content}
         </pre>
       )}
@@ -240,36 +240,38 @@ export function ChatTranscript() {
     <div
       ref={scrollRef}
       onScroll={handleScroll}
-      className="chat-scroll flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 text-sm"
+      className="chat-scroll flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto text-sm"
     >
-      {entries.length === 0 && streamingText.length === 0 && !busy && (
-        <p className="text-xs leading-relaxed text-neutral-500">Describe what you want to draw.</p>
-      )}
+      <div className="flex flex-col gap-4 p-4">
+        {entries.length === 0 && streamingText.length === 0 && !busy && (
+          <p className="text-xs leading-relaxed text-neutral-500">Describe what you want to draw.</p>
+        )}
 
-      {entries.map(renderEntry)}
+        {entries.map(renderEntry)}
 
-      {streamingText.length > 0 && (
-        <div className={ASSISTANT_TEXT}>
-          <span className="whitespace-pre-wrap">{streamingText}</span>
-        </div>
-      )}
+        {streamingText.length > 0 && (
+          <div className={ASSISTANT_TEXT}>
+            <span className="whitespace-pre-wrap">{streamingText}</span>
+          </div>
+        )}
 
-      {busy && (
-        <div className="flex items-center gap-2 text-[11px] tracking-wide text-neutral-500">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-400/80" />
-          {preparing ? `Preparing ${preparing}…` : 'Thinking'}
-        </div>
-      )}
+        {busy && (
+          <div className="flex items-center gap-2 text-[11px] tracking-wide text-neutral-500">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-400/80" />
+            {preparing ? `Preparing ${preparing}…` : 'Thinking'}
+          </div>
+        )}
 
-      {phase === 'done' && (
-        <button
-          type="button"
-          onClick={newConversation}
-          className="mx-auto mt-1 rounded-full border border-neutral-800 bg-neutral-900/60 px-4 py-1.5 text-[12px] text-neutral-400 transition-colors hover:border-neutral-700 hover:text-neutral-200 focus:outline-none"
-        >
-          New conversation
-        </button>
-      )}
+        {phase === 'done' && (
+          <button
+            type="button"
+            onClick={newConversation}
+            className="mx-auto mt-1 rounded-full border border-neutral-800 bg-neutral-900/60 px-4 py-1.5 text-[12px] text-neutral-400 transition-colors hover:border-neutral-700 hover:text-neutral-200 focus:outline-none"
+          >
+            New conversation
+          </button>
+        )}
+      </div>
     </div>
   )
 }
