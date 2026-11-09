@@ -143,19 +143,30 @@ describe('applyPixelSpec', () => {
   it('draw validates without mutating and reports actionable errors', () => {
     const document = new FakeDocument()
     const draw = new DrawFrame(document)
+    const spec = {
+      size: [4, 4] as [number, number],
+      palette: { '.': 'transparent', a: '#ff0000' },
+      frames: [{ pixels: ['....', '.aa.', '.aa.', '....'] }],
+    }
     const dry = draw.execute({
-      spec: {
-        size: [4, 4],
-        palette: { '.': 'transparent', a: '#ff0000' },
-        frames: [{ pixels: ['....', '.aa.', '.aa.', '....'] }],
-      },
+      spec,
       apply: false,
-    }) as { ok: boolean; applied?: boolean; frames?: unknown[] }
+    }) as { ok: boolean; applied?: boolean; frames?: Array<{ ascii?: string }> }
 
     expect(dry.ok).toBe(true)
     expect(dry.applied).toBe(false)
     expect(dry.frames).toHaveLength(1)
+    expect(dry.frames?.[0]?.ascii).toBeTypeOf('string')
     expect(document.project.frames).toHaveLength(1)
+
+    const applied = draw.execute({ spec }) as {
+      ok: boolean
+      applied?: boolean
+      frames?: Array<{ ascii?: string }>
+    }
+    expect(applied.ok).toBe(true)
+    expect(applied.applied).toBe(true)
+    expect(applied.frames?.[0]?.ascii).toBeUndefined()
 
     const invalid = draw.execute({
       spec: {
@@ -167,7 +178,7 @@ describe('applyPixelSpec', () => {
 
     expect(invalid.ok).toBe(false)
     expect(invalid.errors?.[0]?.code).toBe('row-width')
-    expect(document.project.frames).toHaveLength(1)
+    expect(document.project.frames).toHaveLength(2)
   })
 
   it('reads a frame back as a spec-compatible palette and grid', () => {
@@ -184,6 +195,7 @@ describe('applyPixelSpec', () => {
       size: [number, number]
       palette: Record<string, string>
       pixels: string[]
+      ascii?: string
       metrics: { occupied_pixels: number }
     }
 
@@ -191,6 +203,7 @@ describe('applyPixelSpec', () => {
     expect(result.size).toEqual([8, 8])
     expect(result.palette['.']).toBe('transparent')
     expect(result.pixels[1][1]).not.toBe('.')
+    expect(result.ascii).toBeUndefined()
     expect(result.metrics.occupied_pixels).toBe(4)
   })
 

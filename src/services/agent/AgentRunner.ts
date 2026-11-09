@@ -79,6 +79,59 @@ function compactArguments(args: string): string {
   }
 }
 
+function withoutImages(messages: ChatMessage[]): ChatMessage[] {
+  return messages.map((message) =>
+    message.images && message.images.length > 0 ? { ...message, images: undefined } : message,
+  )
+}
+
+const KEEP_TOOL_KEYS = [
+  'ok',
+  'applied',
+  'frameId',
+  'frameIds',
+  'selected',
+  'name',
+  'error',
+  'errors',
+  'answers',
+]
+
+function compactToolContent(content: string): string {
+  if (content.length <= 900) return content
+  try {
+    const parsed: unknown = JSON.parse(content)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return `${content.slice(0, 900)}…`
+    }
+    const source = parsed as Record<string, unknown>
+    const summary: Record<string, unknown> = {
+      note: 'earlier tool result compacted; call read_frame if exact pixels are needed',
+    }
+    for (const key of KEEP_TOOL_KEYS) {
+      if (key in source) summary[key] = source[key]
+    }
+    return JSON.stringify(summary)
+  } catch {
+    return `${content.slice(0, 900)}…`
+  }
+}
+
+function compactToolHistory(messages: ChatMessage[]): ChatMessage[] {
+  const toolIndices: number[] = []
+  messages.forEach((message, index) => {
+    if (message.role === 'tool') toolIndices.push(index)
+  })
+  if (toolIndices.length <= 2) return messages
+  const keepFull = new Set(toolIndices.slice(-2))
+  return messages.map((message, index) => {
+    if (message.role !== 'tool' || keepFull.has(index) || typeof message.content !== 'string') {
+      return message
+    }
+    return { ...message, content: compactToolContent(message.content) }
+  })
+}
+
 export class AgentRunner {
   constructor(private readonly options: AgentRunnerOptions) {}
 
@@ -95,11 +148,11 @@ export class AgentRunner {
       ...history,
     ]
 
-    for (;;) {
+    for (let step = 0; ; step += 1) {
       if (signal?.aborted) return
 
       const request: ChatRequest = {
-        messages,
+        messages: compactToolHistory(step === 0 ? messages : withoutImages(messages)),
         tools,
         toolChoice: tools ? 'auto' : undefined,
         temperature: this.options.temperature,

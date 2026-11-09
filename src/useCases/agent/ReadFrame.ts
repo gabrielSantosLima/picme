@@ -4,6 +4,7 @@ import { PixelGrid } from '../../entities/PixelGrid'
 import { metricsForGrid } from '../../entities/pixelSpec'
 import { compositeLayers } from '../../services/canvas/composite'
 import type { DocumentRepository } from '../../services/document/DocumentRepository'
+import { compactMetrics } from './compactMetrics'
 
 const PARAMETERS: JsonSchema = {
   type: 'object',
@@ -41,8 +42,7 @@ export class ReadFrame {
         size: [project.width, project.height],
         palette,
         pixels,
-        ascii: pixels.join('\n'),
-        metrics: metricsForGrid(grid),
+        metrics: compactMetrics(metricsForGrid(grid)),
       }
     } catch (error) {
       return {
@@ -61,7 +61,7 @@ export class ReadFrame {
     return {
       name: 'read_frame',
       description:
-        'Read a frame as a PixelSpec-compatible palette and character grid, plus metrics and an ASCII preview. Use it before editing or animating an existing frame.',
+        'Read a frame as a PixelSpec-compatible palette and character grid, plus compact metrics. Use it before editing or animating an existing frame.',
       parameters: PARAMETERS,
       execute: (args) => this.execute(args),
     }

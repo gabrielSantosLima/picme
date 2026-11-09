@@ -11,6 +11,7 @@ import {
 } from '../../entities/pixelSpec'
 import type { DocumentRepository } from '../../services/document/DocumentRepository'
 import { applyPixelSpec } from './ApplyPixelSpec'
+import { compactMetrics } from './compactMetrics'
 import { MAX_FRAMES } from './limits'
 import { DRAW_TARGET_SCHEMA, PIXEL_SPEC_SCHEMA, PLACEMENT_SCHEMA } from './specSchema'
 
@@ -36,13 +37,13 @@ interface DrawArgs {
   apply?: boolean
 }
 
-function summarized(rendered: RenderedSpec): unknown[] {
+function summarized(rendered: RenderedSpec, includeAscii: boolean): unknown[] {
   return rendered.frames.map((frame) => ({
     name: frame.name,
     size: frame.metrics.size,
     durationMs: frame.durationMs,
-    metrics: frame.metrics,
-    ascii: frame.ascii,
+    metrics: compactMetrics(frame.metrics),
+    ...(includeAscii ? { ascii: frame.ascii } : {}),
   }))
 }
 
@@ -103,7 +104,7 @@ export class DrawFrame {
           ok: true,
           applied: false,
           placement: { x: placement.x, y: placement.y },
-          frames: summarized(rendered),
+          frames: summarized(rendered, true),
         }
       }
 
@@ -120,7 +121,7 @@ export class DrawFrame {
         applied: true,
         frameIds,
         placement: { x: placement.x, y: placement.y },
-        frames: summarized(rendered),
+        frames: summarized(rendered, false),
       }
     } catch (error) {
       return { ok: false, errors: describeError(error) }
@@ -131,7 +132,7 @@ export class DrawFrame {
     return {
       name: 'draw',
       description:
-        'Draw pixel art by writing a deterministic PixelSpec. The renderer validates every row and op, returns metrics and an ASCII preview, and applies the result to the canvas atomically. Use apply:false to validate a silhouette without changing the canvas. Ops: mirror_x, mirror_y, outline, rect, line, ellipse, flood_fill, replace, shift, dither.',
+        'Draw pixel art by writing a deterministic PixelSpec. The renderer validates every row and op, returns compact metrics (plus ASCII when apply:false), and applies the result to the canvas atomically. Ops: mirror_x, mirror_y, outline, rect, line, ellipse, flood_fill, replace, shift, dither.',
       parameters: PARAMETERS,
       execute: (args) => this.execute(args),
     }
