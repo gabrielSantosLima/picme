@@ -146,9 +146,9 @@ export function AgentInput() {
               type="button"
               onClick={stop}
               title="Stop"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/90 text-white transition-colors hover:bg-red-400 focus:outline-none"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/90 p-0 leading-none text-white transition-colors hover:bg-red-400 focus:outline-none"
             >
-              <LuSquare className="text-[13px]" />
+              <LuSquare className="block h-3.5 w-3.5" aria-hidden />
             </button>
           ) : (
             <button
@@ -156,9 +156,9 @@ export function AgentInput() {
               onClick={submit}
               disabled={!canSubmit}
               title="Send"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-neutral-900 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-200 p-0 leading-none text-neutral-900 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none"
             >
-              <LuArrowUp className="text-[15px]" />
+              <LuArrowUp className="block h-4 w-4" aria-hidden />
             </button>
           )}
         </div>
