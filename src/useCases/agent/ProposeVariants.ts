@@ -1,24 +1,29 @@
 import type { AgentSkill, ArtVariant, JsonSchema } from '../../entities/agent'
+import {
+  PixelSpecError,
+  renderSpec,
+  type PixelIssue,
+  type PixelSpec,
+} from '../../entities/pixelSpec'
 import type { InteractionBroker } from '../../services/agent/InteractionBroker'
 import type { DocumentRepository } from '../../services/document/DocumentRepository'
-import { applyDrawPayload } from './applyDrawPayload'
-
-const VARIANT_SIZE = 32
+import { applyPixelSpec } from './ApplyPixelSpec'
+import { PIXEL_SPEC_SCHEMA } from './specSchema'
 
 const PARAMETERS: JsonSchema = {
   type: 'object',
   properties: {
     variants: {
       type: 'array',
-      description: 'Two or three different full designs, each a 32x32 character grid.',
+      description:
+        'Two or three different designs. Each design is a one-frame PixelSpec; the user picks one and it is drawn on a new frame.',
       items: {
         type: 'object',
         properties: {
           name: { type: 'string' },
-          palette: { type: 'array', items: { type: 'string' } },
-          pixels: { type: 'array', items: { type: 'string' } },
+          spec: PIXEL_SPEC_SCHEMA,
         },
-        required: ['palette', 'pixels'],
+        required: ['spec'],
       },
     },
   },
@@ -27,27 +32,17 @@ const PARAMETERS: JsonSchema = {
 
 interface RawVariant {
   name?: string
-  palette?: string[]
-  pixels?: string[]
+  spec?: PixelSpec
 }
 
-function normalizeRow(row: unknown): string {
-  const text = typeof row === 'string' ? row : ''
-  if (text.length === VARIANT_SIZE) return text
-  if (text.length > VARIANT_SIZE) return text.slice(0, VARIANT_SIZE)
-  return text.padEnd(VARIANT_SIZE, '.')
-}
-
-function normalizeVariant(raw: RawVariant, index: number): ArtVariant {
-  const source = Array.isArray(raw.pixels) ? raw.pixels : []
-  const pixels: string[] = []
-  for (let y = 0; y < VARIANT_SIZE; y += 1) pixels.push(normalizeRow(source[y]))
-  return {
-    id: crypto.randomUUID(),
-    name: raw.name ?? String.fromCharCode(65 + index),
-    palette: Array.isArray(raw.palette) ? raw.palette : [],
-    pixels,
-  }
+function describeError(error: unknown): PixelIssue[] {
+  if (error instanceof PixelSpecError) return error.issues
+  return [
+    {
+      code: 'variant-failed',
+      message: error instanceof Error ? error.message : String(error),
+    },
+  ]
 }
 
 export class ProposeVariants {
@@ -57,32 +52,81 @@ export class ProposeVariants {
   ) {}
 
   async execute(args: unknown): Promise<unknown> {
-    const raw = (args as { variants?: RawVariant[] }).variants
+    const project = this.document.getProject()
+    const raw = (args as { variants?: RawVariant[] } | null)?.variants
     const list = Array.isArray(raw) ? raw.slice(0, 3) : []
-    const variants = list.map((variant, index) => normalizeVariant(variant, index))
-    if (variants.length === 0) return { error: 'No variants provided.' }
+    if (list.length === 0) {
+      return { ok: false, errors: [{ code: 'no-variants', message: 'No variants provided.' }] }
+    }
+
+    const variants: ArtVariant[] = []
+    const issues: PixelIssue[] = []
+
+    list.forEach((variant, index) => {
+      if (!variant?.spec) {
+        issues.push({
+          code: 'variant-spec-missing',
+          message: `variant ${index + 1} is missing a spec`,
+        })
+        return
+      }
+      try {
+        const rendered = renderSpec(variant.spec, {
+          maxWidth: project.width,
+          maxHeight: project.height,
+          maxFrames: 1,
+        })
+        const frame = rendered.frames[0]
+        if (!frame) {
+          issues.push({
+            code: 'variant-empty',
+            message: `variant ${index + 1} has no frame`,
+          })
+          return
+        }
+        variants.push({
+          id: crypto.randomUUID(),
+          name: variant.name ?? String.fromCharCode(65 + index),
+          spec: variant.spec,
+          rendered: frame,
+        })
+      } catch (error) {
+        issues.push(...describeError(error))
+      }
+    })
+
+    if (issues.length > 0) return { ok: false, errors: issues }
+    if (variants.length === 0) {
+      return { ok: false, errors: [{ code: 'no-variants', message: 'No valid variants provided.' }] }
+    }
 
     const result = (await this.broker.request({
       id: crypto.randomUUID(),
       kind: 'variants',
       variants,
-    })) as { selected?: number }
+    })) as { selected?: number } | null
 
     const selected = Math.max(0, Math.min(variants.length - 1, result?.selected ?? 0))
     const chosen = variants[selected]
-    const { frameId } = await applyDrawPayload(this.document, {
-      palette: chosen.palette,
-      pixels: chosen.pixels,
-      mode: 'replace',
-    })
-    return { selected, frameId, name: chosen.name }
+    try {
+      const { frameIds } = applyPixelSpec({
+        document: this.document,
+        frames: [chosen.rendered],
+        target: { mode: 'new' },
+        placement: { anchor: 'center' },
+        fps: chosen.spec.fps,
+      })
+      return { ok: true, selected, frameId: frameIds[0], name: chosen.name }
+    } catch (error) {
+      return { ok: false, errors: describeError(error) }
+    }
   }
 
   toSkill(): AgentSkill {
     return {
       name: 'propose_variants',
       description:
-        'Propose 2-3 different pixel-art designs (each a 16x16 grid). The user picks one and it is drawn automatically on a new frame.',
+        'Propose 2-3 different pixel-art designs as one-frame PixelSpecs. Each spec is validated and rendered; the user picks one and it is drawn on a new frame. Invalid specs return errors instead of showing broken art.',
       parameters: PARAMETERS,
       execute: (args) => this.execute(args),
     }

@@ -1,5 +1,7 @@
 import type { AgentSkill, JsonSchema } from '../../entities/agent'
-import { encodeGrid } from '../../entities/gridCodec'
+import { encodeSpecGrid } from '../../entities/gridCodec'
+import { PixelGrid } from '../../entities/PixelGrid'
+import { metricsForGrid } from '../../entities/pixelSpec'
 import { compositeLayers } from '../../services/canvas/composite'
 import type { DocumentRepository } from '../../services/document/DocumentRepository'
 
@@ -17,24 +19,41 @@ export class ReadFrame {
   constructor(private readonly document: DocumentRepository) {}
 
   execute(args: unknown): unknown {
-    const { frameId } = args as { frameId?: string }
+    const { frameId } = (args ?? {}) as { frameId?: string }
     const project = this.document.getProject()
     const frame = frameId
       ? project.frames.find((item) => item.id === frameId)
       : project.activeFrame
-    if (!frame) return { error: `Frame not found: ${frameId ?? 'active frame'}` }
+    if (!frame) {
+      return {
+        ok: false,
+        errors: [{ code: 'frame-not-found', message: `Frame not found: ${frameId ?? 'active frame'}` }],
+      }
+    }
 
-    const { palette, grid } = encodeGrid(
-      compositeLayers(frame, project.width, project.height),
-      project.width,
-      project.height,
-    )
-    return {
-      frameId: frame.id,
-      width: project.width,
-      height: project.height,
-      palette,
-      pixels: grid,
+    try {
+      const composite = compositeLayers(frame, project.width, project.height)
+      const { palette, pixels } = encodeSpecGrid(composite, project.width, project.height)
+      const grid = new PixelGrid(project.width, project.height, composite)
+      return {
+        ok: true,
+        frameId: frame.id,
+        size: [project.width, project.height],
+        palette,
+        pixels,
+        ascii: pixels.join('\n'),
+        metrics: metricsForGrid(grid),
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        errors: [
+          {
+            code: 'read-failed',
+            message: error instanceof Error ? error.message : String(error),
+          },
+        ],
+      }
     }
   }
 
@@ -42,7 +61,7 @@ export class ReadFrame {
     return {
       name: 'read_frame',
       description:
-        'Read the exact pixel grid (palette + character rows) of a frame by id. Use it before editing or animating a frame precisely.',
+        'Read a frame as a PixelSpec-compatible palette and character grid, plus metrics and an ASCII preview. Use it before editing or animating an existing frame.',
       parameters: PARAMETERS,
       execute: (args) => this.execute(args),
     }

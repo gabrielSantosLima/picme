@@ -1,3 +1,5 @@
+import type { RenderedFrame, PixelSpec } from './pixelSpec'
+
 export interface JsonSchema {
   type?: string
   description?: string
@@ -55,26 +57,11 @@ export type PendingInteraction =
 export interface ArtVariant {
   id: string
   name?: string
-  palette: string[]
-  pixels: string[]
+  spec: PixelSpec
+  rendered: RenderedFrame
 }
 
 export interface QuestionAnswer {
   question: string
   selected: string[]
-}
-
-export interface DrawRegion {
-  x: number
-  y: number
-  width: number
-  height: number
-}
-
-export interface DrawPayload {
-  frameId?: string
-  mode?: 'replace' | 'merge'
-  region?: DrawRegion
-  palette: string[]
-  pixels: string[]
 }

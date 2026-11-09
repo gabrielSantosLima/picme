@@ -31,6 +31,7 @@ See `PLAN.md` for the full design. Implement in milestone order (M0 → M7).
 - Preview: `npm run preview`
 - Lint: `npm run lint` (oxlint)
 - Typecheck: `npm run typecheck` (tsc -b, strict mode)
+- Test: `npm test` (vitest)
 
 Always run lint and typecheck after making changes.
 
@@ -81,8 +82,13 @@ Rules:
 
 - No backend. Never introduce server-side code or secrets in the repo.
 - The agent uses tool/function calling with a strict schema, not free-form text.
-- Restrict agent-drawn coordinates to project bounds and colors to the active palette.
-- Respect the configured grid (default 32×32).
+- Agent-generated art goes through the PixelSpec renderer (`entities/pixelSpec`)
+  and `ApplyPixelSpec`; never write raw grids or bypass validation, metrics and
+  undo.
+- Agent specs use their own named palette (maximum 16 opaque colors). The manual
+  editor's `DEFAULT_PALETTE` does not restrict the agent.
+- Keep agent placements inside the project bounds and respect the configured grid
+  (default 32×32).
 
 ## Commits
 

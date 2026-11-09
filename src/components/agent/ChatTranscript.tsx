@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { LuChevronRight } from 'react-icons/lu'
 import type { ArtVariant } from '../../entities/agent'
-import { variantToDataUrl } from '../../services/canvas/variantToDataUrl'
 import { useAgent } from '../../hooks/useAgent'
+import { useSpecPreviews } from '../../hooks/useSpecPreviews'
 import { useAgentStore, type AgentEntry } from '../../store/agentStore'
 
 function rowClass(role: string): string {
@@ -45,7 +45,7 @@ function SkillTrace({
 }
 
 function VariantsEntry({ variants, selected }: { variants: ArtVariant[]; selected?: number }) {
-  const images = useMemo(() => variants.map((variant) => variantToDataUrl(variant)), [variants])
+  const images = useSpecPreviews(variants)
   return (
     <div className="flex gap-2">
       {variants.map((variant, index) => (

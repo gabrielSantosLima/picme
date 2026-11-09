@@ -1,37 +1,17 @@
-import { fromHex, toHex, type RGBA } from './color'
+import { toHex } from './color'
 
-export function paletteIndex(char: string | undefined): number {
-  if (!char || char === '.' || char === ' ') return -1
-  const code = char.charCodeAt(0)
-  if (code >= 48 && code <= 57) return code - 48
-  if (code >= 97 && code <= 122) return code - 97 + 10
-  if (code >= 65 && code <= 90) return code - 65 + 10
-  return -1
-}
+const SPEC_CHARS =
+  '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&()*+,-/:;<=>?@[]^_{|}~'
 
-export function paletteColors(palette: string[]): RGBA[] {
-  return palette.map((entry) => (entry && entry.length > 0 ? fromHex(entry) : 0))
-}
-
-export function rowColor(row: string, colors: RGBA[], x: number): RGBA {
-  const index = paletteIndex(row[x])
-  if (index < 0 || index >= colors.length) return 0
-  return colors[index]
-}
-
-function indexToChar(index: number): string {
-  if (index < 10) return String(index)
-  return String.fromCharCode(97 + Math.min(index - 10, 25))
-}
-
-export function encodeGrid(
+export function encodeSpecGrid(
   pixels: Uint32Array,
   width: number,
   height: number,
-): { palette: string[]; grid: string[] } {
-  const indexByColor = new Map<number, number>()
-  const palette: string[] = []
-  const grid: string[] = []
+): { palette: Record<string, string>; pixels: string[] } {
+  const palette: Record<string, string> = { '.': 'transparent' }
+  const charByColor = new Map<number, string>()
+  const rows: string[] = []
+
   for (let y = 0; y < height; y += 1) {
     let row = ''
     for (let x = 0; x < width; x += 1) {
@@ -40,15 +20,21 @@ export function encodeGrid(
         row += '.'
         continue
       }
-      let index = indexByColor.get(color)
-      if (index === undefined) {
-        index = palette.length
-        indexByColor.set(color, index)
-        palette.push(toHex(color))
+      let character = charByColor.get(color)
+      if (!character) {
+        character = SPEC_CHARS[charByColor.size]
+        if (!character) {
+          throw new Error(
+            `frame has more than ${SPEC_CHARS.length} colors and cannot be encoded as a spec`,
+          )
+        }
+        charByColor.set(color, character)
+        palette[character] = toHex(color)
       }
-      row += indexToChar(index)
+      row += character
     }
-    grid.push(row)
+    rows.push(row)
   }
-  return { palette, grid }
+
+  return { palette, pixels: rows }
 }

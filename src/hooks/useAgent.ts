@@ -1,5 +1,6 @@
 import { useProvider } from '../contexts/ProviderContext'
 import type { ArtVariant } from '../entities/agent'
+import { renderSpec, type PixelSpec } from '../entities/pixelSpec'
 import { InteractionBroker } from '../services/agent/InteractionBroker'
 import { AgentRunner } from '../services/agent/AgentRunner'
 import { createProvider } from '../services/llm/createProvider'
@@ -14,16 +15,34 @@ let currentAbort: AbortController | null = null
 let conversation: ChatMessage[] = []
 let lastVariantsEntryId: string | null = null
 
-function toVariants(args: unknown): ArtVariant[] {
-  const raw = (args as { variants?: Array<{ name?: string; palette?: string[]; pixels?: string[] }> })
-    .variants
+function toVariants(
+  args: unknown,
+  project: { width: number; height: number },
+): ArtVariant[] {
+  const raw = (args as { variants?: Array<{ name?: string; spec?: PixelSpec }> }).variants
   if (!Array.isArray(raw)) return []
-  return raw.map((variant, index) => ({
-    id: crypto.randomUUID(),
-    name: variant.name ?? String.fromCharCode(65 + index),
-    palette: Array.isArray(variant.palette) ? variant.palette : [],
-    pixels: Array.isArray(variant.pixels) ? variant.pixels : [],
-  }))
+  const variants: ArtVariant[] = []
+  raw.forEach((variant, index) => {
+    if (!variant?.spec) return
+    try {
+      const rendered = renderSpec(variant.spec, {
+        maxWidth: project.width,
+        maxHeight: project.height,
+        maxFrames: 1,
+      })
+      const frame = rendered.frames[0]
+      if (!frame) return
+      variants.push({
+        id: crypto.randomUUID(),
+        name: variant.name ?? String.fromCharCode(65 + index),
+        spec: variant.spec,
+        rendered: frame,
+      })
+    } catch {
+      return
+    }
+  })
+  return variants
 }
 
 function getBroker(): InteractionBroker {
@@ -142,7 +161,10 @@ export function useAgent() {
           })
           pendingSkills.push({ id, name: event.name })
           if (event.name === 'propose_variants') {
-            const variants = toVariants(event.args)
+            const variants = toVariants(
+              event.args,
+              useDocumentStore.getState().getProject(),
+            )
             if (variants.length > 0) {
               lastVariantsEntryId = store().addEntry({ kind: 'variants', variants })
             }
@@ -152,9 +174,11 @@ export function useAgent() {
           const skill = index >= 0 ? pendingSkills.splice(index, 1)[0] : undefined
           if (skill) store().updateEntry(skill.id, { status: 'done', result: stringify(event.result) })
           if (event.name === 'propose_variants' && lastVariantsEntryId) {
-            const selected = (event.result as { selected?: number } | null)?.selected
-            if (typeof selected === 'number') {
-              store().updateEntry(lastVariantsEntryId, { selected })
+            const result = event.result as { ok?: boolean; selected?: number } | null
+            if (result?.ok === false) {
+              store().removeEntry(lastVariantsEntryId)
+            } else if (typeof result?.selected === 'number') {
+              store().updateEntry(lastVariantsEntryId, { selected: result.selected })
             }
             lastVariantsEntryId = null
           }

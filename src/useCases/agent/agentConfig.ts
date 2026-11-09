@@ -4,12 +4,10 @@ import type { InteractionBroker } from '../../services/agent/InteractionBroker'
 import type { DocumentRepository } from '../../services/document/DocumentRepository'
 import { AskQuestions } from './AskQuestions'
 import { DrawFrame } from './DrawFrame'
+import { MAX_FRAMES, MAX_STEPS } from './limits'
 import { ProposeVariants } from './ProposeVariants'
 import { ReadFrame } from './ReadFrame'
 import { ShowWordCloud } from './ShowWordCloud'
-
-const MAX_FRAMES = 8
-const MAX_STEPS = 8
 
 export interface AgentConfigDeps {
   broker: InteractionBroker
@@ -23,34 +21,62 @@ export interface AgentConfig {
   maxSteps: number
 }
 
-const DRAW_FORMAT = `Tools:
-- "propose_variants" args: { variants: [ { name?, palette: [hex,...], pixels: [32 rows of 32 chars] } ] } (2-3 variants). The user picks one and it is drawn on a new frame.
-- "read_frame" args: { frameId? } returns { palette, pixels } of that frame (omit frameId for the active frame). Use it before editing or animating a frame precisely.
-- "draw" args: { frameId?, mode: "replace"|"merge", region?: {x,y,width,height}, palette: [hex,...], pixels: [row,...] }
-  - palette chars: 0-9 then a-z; "" = transparent.
-  - pixels: one string per row; "." or " " = transparent.
-  - region draws only a sub-rectangle (pixels = region.height rows of region.width chars).`
+const SPEC_FORMAT = `PixelSpec format:
+- draw args: { spec, target?, placement?, apply? }
+- spec: { size: [w,h], palette: { char: color }, frames: [ { name?, pixels: [row,...], ops: [op,...], durationMs? } ], fps? }
+- palette: single-char keys. "." is transparent. Values: "#rgb", "#rgba", "#rrggbb", "#rrggbbaa", [r,g,b], [r,g,b,a], or "transparent". Use at most 16 opaque colors.
+- pixels: one string per row, exactly size[1] rows with exactly size[0] chars. A space is transparent.
+- target: { mode: "new" | "replace" | "merge", frameId?, frameIds? }. "new" inserts frames; "replace" flattens and redraws; "merge" paints non-transparent pixels.
+- placement: { x, y } or { anchor, offsetX?, offsetY? }. Anchors: top-left, top-center, top-right, center-left, center, center-right, bottom-left, bottom-center, bottom-right. Default center; use bottom-center for characters.
+- apply: false validates and renders without changing the canvas.
+
+Ops (applied in order):
+- mirror_x / mirror_y
+- outline { color }
+- rect { x, y, w, h, color }
+- line { x0, y0, x1, y1, color }
+- ellipse { cx, cy, rx, ry, color }
+- flood_fill { x, y, color }
+- replace { from, to }
+- shift { dx, dy }
+- dither { x?, y?, w?, h?, a, b, from?, pattern? } (pattern "checker" or 0-100)
+All color fields take palette keys.`
 
 function systemPrompt(project: Project, includeImage: boolean): string {
   const ids = project.frames.map((frame, index) => `${index + 1}=${frame.id}`).join(', ')
   const canvasLine = includeImage
     ? 'An image of the current canvas (active frame) is attached to the user message. Use it as reference.'
     : 'You do not have the canvas image. Use "read_frame" if you need a frame\'s exact pixels.'
-  return `You are PicMe's pixel-art agent. Create and edit animated pixel art.
+  return `You are PicMe's pixel-art agent. You create and edit animated pixel art by writing deterministic PixelSpecs. A renderer validates every row and op, rasterizes the spec, returns metrics and an ASCII preview, and applies it to the canvas atomically. You never paint a raw grid outside this pipeline.
 
 Canvas ${project.width}x${project.height}. Frames: ${project.frames.length} (${ids}); max ${MAX_FRAMES}.
 ${canvasLine}
 
 How to work:
-- Vague request: clarify with "ask" (multiple choice) and/or "show_word_cloud" (max twice).
-- Then call "propose_variants" with 2-3 DIFFERENT designs (each a 32x32 grid). The user picks one and it is placed on a new frame automatically (the tool returns its frameId).
-- After that, refine ONLY with "draw" (mode "merge") using small "region"s — at most 3 refinements. NEVER redraw the whole frame.
-- To animate or edit other frames precisely, call "read_frame" for their id first, then "draw" with that frameId.
-- Max 8 colors, centered shapes, 1px margin, transparent background.
+- Vague request: clarify with "ask" (multiple choice) and/or "show_word_cloud" (at most twice).
+- Then call "propose_variants" with 2-3 DIFFERENT one-frame specs. The user picks one and it is drawn on a new frame automatically.
+- Refine the selected frame with "draw". To edit an existing frame, call "read_frame" first, then send a complete spec with palette, pixels and ops and target { mode: "replace", frameId }. Use ops to avoid manual repetition.
+- Prefer ops (mirror, outline, replace, shift, dither) over hand-editing repeated rows.
+- Use "draw" with apply:false to validate a silhouette before coloring when uncertain.
+- Create the whole animation in one "draw" call when possible. Keep 2-4 frames, same size and palette, stable bbox; use "shift" for bounce.
+
+Quality rules:
+- Define target size, view, palette and transparent background.
+- Silhouette first, then color.
+- Name the palette: "." transparent, "#" outline, lowercase base/shadow, uppercase highlight.
+- Closed 1px outline; 3-tone ramps per material; no anti-aliasing or blur.
+- One perspective per sprite. No mixing front and isometric.
+- 1px margin; characters stand on the bottom (bottom-center). Keep art readable at 16x16.
+- At most 16 colors. Prefer 4-8.
+- Never describe pixels only in prose: always call "draw" or "propose_variants".
 - Always reply in English.
+
+Validation loop:
+- If the tool returns ok:false, read the errors, fix the spec and retry within this run. Do not ask the user to fix rows.
+- Check metrics: orphan_pixels > 0 means loose pixels; vertical_symmetry < 1 on a symmetric sprite means a warped shape; low occupancy means the sprite is too small or empty; bbox touching an edge may be clipped; too many colors need consolidation.
 - Before finishing, either ask the user via "ask" if they want to continue, or reply with a short summary.
 
-${DRAW_FORMAT}`
+${SPEC_FORMAT}`
 }
 
 export function buildAgentConfig(deps: AgentConfigDeps): AgentConfig {

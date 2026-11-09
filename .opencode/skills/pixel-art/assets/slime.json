@@ -1,0 +1,64 @@
+{
+  "name": "slime",
+  "size": [16, 16],
+  "scale": 16,
+  "palette": {
+    ".": "transparent",
+    "#": "#1a1c2c",
+    "g": "#38b764",
+    "G": "#a7f070",
+    "d": "#257179",
+    "w": "#f4f4f4"
+  },
+  "frames": [
+    {
+      "name": "idle",
+      "pixels": [
+        "................",
+        ".....######.....",
+        "....#gggggg#....",
+        "...#gGGggggg#...",
+        "..#gGGggggggg#..",
+        "..#gggggggggg#..",
+        ".#gggggggggggg#.",
+        ".#ggwggggggwgg#.",
+        ".#ggwggggggwgg#.",
+        ".#gggggggggggg#.",
+        ".#gggddddddggg#.",
+        "..#gddddddddg#..",
+        "...#dddddddd#...",
+        "....########....",
+        "................",
+        "................"
+      ],
+      "ops": [
+        { "op": "mirror_x" }
+      ]
+    },
+    {
+      "name": "bounce",
+      "pixels": [
+        "................",
+        ".....######.....",
+        "....#gggggg#....",
+        "...#gGGggggg#...",
+        "..#gGGggggggg#..",
+        "..#gggggggggg#..",
+        ".#gggggggggggg#.",
+        ".#ggwggggggwgg#.",
+        ".#ggwggggggwgg#.",
+        ".#gggggggggggg#.",
+        ".#gggddddddggg#.",
+        "..#gddddddddg#..",
+        "...#dddddddd#...",
+        "....########....",
+        "................",
+        "................"
+      ],
+      "ops": [
+        { "op": "mirror_x" },
+        { "op": "shift", "dx": 0, "dy": -1 }
+      ]
+    }
+  ]
+}

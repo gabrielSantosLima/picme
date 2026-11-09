@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { ArtVariant } from '../../entities/agent'
-import { variantToDataUrl } from '../../services/canvas/variantToDataUrl'
+import { useSpecPreviews } from '../../hooks/useSpecPreviews'
 
 export function VariantPicker({
   variants,
@@ -10,11 +10,7 @@ export function VariantPicker({
   onSubmit: (result: unknown) => void
 }) {
   const [selected, setSelected] = useState(0)
-
-  const images = useMemo(
-    () => variants.map((variant) => variantToDataUrl(variant)),
-    [variants],
-  )
+  const images = useSpecPreviews(variants)
 
   return (
     <div className="flex flex-col gap-3 rounded border border-sky-500/40 bg-neutral-800/60 p-3">

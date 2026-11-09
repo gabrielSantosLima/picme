@@ -37,20 +37,38 @@ function stringify(value: unknown): string {
   }
 }
 
+function compactFrames(value: unknown): unknown {
+  if (!Array.isArray(value)) return value
+  return value.map((frame) => {
+    if (!frame || typeof frame !== 'object') return frame
+    const item = frame as Record<string, unknown>
+    if (Array.isArray(item.pixels)) {
+      return { ...item, pixels: `[${item.pixels.length} rows omitted]` }
+    }
+    return item
+  })
+}
+
+function compactSpec(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value
+  const item = value as Record<string, unknown>
+  return { ...item, frames: compactFrames(item.frames) }
+}
+
 function compactArguments(args: string): string {
   if (args.length <= 600) return args
   try {
     const parsed = JSON.parse(args) as Record<string, unknown>
-    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.pixels)) {
-      return JSON.stringify({ ...parsed, pixels: `[${parsed.pixels.length} rows omitted to save tokens]` })
+    if (parsed && typeof parsed === 'object' && parsed.spec) {
+      return JSON.stringify({ ...parsed, spec: compactSpec(parsed.spec) })
     }
     if (parsed && typeof parsed === 'object' && Array.isArray(parsed.variants)) {
       return JSON.stringify({
         ...parsed,
         variants: parsed.variants.map((variant) => {
           const item = variant as Record<string, unknown>
-          if (item && typeof item === 'object' && Array.isArray(item.pixels)) {
-            return { ...item, pixels: `[${item.pixels.length} rows omitted]` }
+          if (item && typeof item === 'object' && item.spec) {
+            return { ...item, spec: compactSpec(item.spec) }
           }
           return item
         }),
