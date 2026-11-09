@@ -635,14 +635,17 @@ The system prompt must transplant the external skill's rules in compact form.
 ## 15. Agent Runtime
 
 - `AgentRunner` remains generic: streams text, accumulates tool calls, executes
-  skills, appends tool results, repeats up to `maxSteps`.
+  skills, appends tool results, and repeats until the model sends a final text
+  response, an error occurs, or the user aborts.
 - Tools:
   - `ask`
   - `show_word_cloud`
   - `propose_variants` (spec-based)
   - `read_frame` (spec format + metrics)
   - `draw` (spec-based, `apply` true/false)
-- `maxSteps` stays at 8 unless evaluation shows a need for more.
+- There is no fixed step limit. The run continues across tool calls until a final
+  text response, an error, or `Stop`. The provider request is the only place that
+  can loop; aborting the request cancels the run.
 - `compactArguments` must not erase the whole spec. When arguments are large:
   - keep `size`, `palette`, `ops` and frame names;
   - replace `pixels` rows with a short note such as `[32 rows omitted]`;

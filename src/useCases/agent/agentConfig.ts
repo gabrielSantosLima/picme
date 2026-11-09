@@ -4,7 +4,7 @@ import type { InteractionBroker } from '../../services/agent/InteractionBroker'
 import type { DocumentRepository } from '../../services/document/DocumentRepository'
 import { AskQuestions } from './AskQuestions'
 import { DrawFrame } from './DrawFrame'
-import { MAX_FRAMES, MAX_STEPS } from './limits'
+import { MAX_FRAMES } from './limits'
 import { ProposeVariants } from './ProposeVariants'
 import { ReadFrame } from './ReadFrame'
 import { ShowWordCloud } from './ShowWordCloud'
@@ -18,7 +18,6 @@ export interface AgentConfigDeps {
 export interface AgentConfig {
   systemPrompt: string
   skills: AgentSkill[]
-  maxSteps: number
 }
 
 const SPEC_FORMAT = `PixelSpec format:
@@ -88,5 +87,5 @@ export function buildAgentConfig(deps: AgentConfigDeps): AgentConfig {
     new ReadFrame(deps.document).toSkill(),
     new DrawFrame(deps.document).toSkill(),
   ]
-  return { systemPrompt: systemPrompt(project, deps.includeImage), skills, maxSteps: MAX_STEPS }
+  return { systemPrompt: systemPrompt(project, deps.includeImage), skills }
 }

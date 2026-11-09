@@ -5,10 +5,17 @@ import { useAgent } from '../../hooks/useAgent'
 import { useSpecPreviews } from '../../hooks/useSpecPreviews'
 import { useAgentStore, type AgentEntry } from '../../store/agentStore'
 
+const ASSISTANT_TEXT =
+  'max-w-[92%] self-start whitespace-pre-wrap break-words text-[13px] leading-relaxed text-neutral-300'
+
 function rowClass(role: string): string {
-  if (role === 'user') return 'max-w-[85%] self-end rounded bg-sky-600 px-2 py-1 text-white'
-  if (role === 'error') return 'max-w-[85%] self-start rounded bg-red-500/20 px-2 py-1 text-red-300'
-  return 'max-w-[85%] self-start rounded bg-neutral-800 px-2 py-1 text-neutral-100'
+  if (role === 'user') {
+    return 'max-w-[85%] self-end rounded-2xl rounded-br-md bg-sky-600 px-3.5 py-2 text-[13px] leading-relaxed text-white shadow-sm'
+  }
+  if (role === 'error') {
+    return 'max-w-[92%] self-start rounded-xl bg-red-500/10 px-3 py-2 text-[12px] leading-relaxed text-red-300'
+  }
+  return ASSISTANT_TEXT
 }
 
 function SkillTrace({
@@ -54,19 +61,19 @@ function ReasoningEntry({ content, streaming }: { content: string; streaming: bo
   }, [content, streaming])
 
   return (
-    <div className="max-w-[92%] self-start rounded border border-neutral-800 bg-neutral-900/60 px-2 py-1.5 text-xs text-neutral-400">
-      <div className="mb-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-neutral-500">
+    <div className="max-w-[92%] self-start">
+      <div className="mb-1.5 flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.18em] text-neutral-600">
         <span
           className={[
-            'h-1.5 w-1.5 rounded-full',
-            streaming ? 'animate-pulse bg-sky-400' : 'bg-neutral-600',
+            'h-1 w-1 rounded-full',
+            streaming ? 'animate-pulse bg-sky-400/80' : 'bg-neutral-700',
           ].join(' ')}
         />
-        {streaming ? 'Thinking…' : 'Thought process'}
+        {streaming ? 'Thinking' : 'Thought process'}
       </div>
       <pre
         ref={contentRef}
-        className="max-h-56 overflow-auto whitespace-pre-wrap break-words font-sans text-[11px] leading-relaxed text-neutral-400"
+        className="max-h-56 overflow-auto whitespace-pre-wrap break-words font-sans text-[12px] leading-relaxed text-neutral-500/90"
       >
         {content}
       </pre>
@@ -124,10 +131,7 @@ function renderEntry(entry: AgentEntry) {
   if (entry.kind === 'message') {
     if (entry.role === 'error') {
       return (
-        <div
-          key={entry.id}
-          className="max-w-[92%] self-start whitespace-pre-wrap break-words rounded border border-red-500/40 bg-red-500/10 px-2 py-1.5 text-xs text-red-300"
-        >
+        <div key={entry.id} className={rowClass('error')}>
           {renderWithLinks(entry.content)}
         </div>
       )
@@ -190,22 +194,22 @@ export function ChatTranscript() {
   const busy = phase === 'running' && streamingText.length === 0 && !hasStreamingReasoning
 
   return (
-    <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 text-sm">
+    <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 text-sm">
       {entries.length === 0 && streamingText.length === 0 && !busy && (
-        <p className="text-xs text-neutral-500">Describe what you want to draw.</p>
+        <p className="text-xs leading-relaxed text-neutral-500">Describe what you want to draw.</p>
       )}
 
       {entries.map(renderEntry)}
 
       {streamingText.length > 0 && (
-        <div className="max-w-[85%] self-start rounded bg-neutral-800 px-2 py-1 text-neutral-100">
+        <div className={ASSISTANT_TEXT}>
           <span className="whitespace-pre-wrap">{streamingText}</span>
         </div>
       )}
 
       {busy && (
-        <div className="flex items-center gap-2 text-xs text-neutral-500">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-sky-400" />
+        <div className="flex items-center gap-2 text-[11px] tracking-wide text-neutral-500">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-400/80" />
           {preparing ? `Preparing ${preparing}…` : 'Thinking'}
         </div>
       )}
@@ -214,7 +218,7 @@ export function ChatTranscript() {
         <button
           type="button"
           onClick={newConversation}
-          className="mx-auto mt-1 rounded border border-neutral-700 px-3 py-1 text-xs text-neutral-300 hover:bg-neutral-800 focus:outline-none"
+          className="mx-auto mt-1 rounded-full border border-neutral-800 bg-neutral-900/60 px-4 py-1.5 text-[12px] text-neutral-400 transition-colors hover:border-neutral-700 hover:text-neutral-200 focus:outline-none"
         >
           New conversation
         </button>

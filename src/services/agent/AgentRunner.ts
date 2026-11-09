@@ -8,7 +8,6 @@ export interface AgentRunnerOptions {
   provider: LLMProvider
   systemPrompt: string
   skills?: AgentSkill[]
-  maxSteps?: number
   temperature?: number
   reasoningEffort?: Exclude<ReasoningEffort, 'default'>
 }
@@ -90,14 +89,13 @@ export class AgentRunner {
   ): AsyncIterable<AgentEvent> {
     const skills = this.options.skills ?? []
     const skillMap = new Map(skills.map((skill) => [skill.name, skill]))
-    const maxSteps = this.options.maxSteps ?? 6
     const tools = skills.length > 0 ? buildTools(skills) : undefined
     const messages: ChatMessage[] = [
       { role: 'system', content: this.options.systemPrompt },
       ...history,
     ]
 
-    for (let step = 0; step < maxSteps; step += 1) {
+    for (;;) {
       if (signal?.aborted) return
 
       const request: ChatRequest = {
@@ -191,11 +189,6 @@ export class AgentRunner {
         yield { type: 'tool_result', name: call.name, result }
         messages.push({ role: 'tool', content: stringify(result), toolCallId: call.id })
       }
-    }
-
-    yield {
-      type: 'message',
-      content: 'I reached the step limit. Tell me if you want me to keep refining.',
     }
   }
 }

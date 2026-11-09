@@ -20,7 +20,6 @@ describe('AgentRunner', () => {
       provider,
       systemPrompt: 'system',
       skills: [],
-      maxSteps: 1,
     })
     const events: AgentEvent[] = []
     for await (const event of runner.run([], { emit: () => undefined })) {

@@ -103,7 +103,6 @@ export function useAgent() {
       provider: createProvider(settings),
       systemPrompt: config.systemPrompt,
       skills: config.skills,
-      maxSteps: config.maxSteps,
       reasoningEffort:
         settings.reasoningEffort === 'default' ? undefined : settings.reasoningEffort,
     })
